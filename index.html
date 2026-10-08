@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Трекер Сна 2026</title>
+  <!-- Telegram WebApp SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --bg-primary: #0b0f19;
+      --bg-card: #131b2e;
+      --bg-card-hover: #1c2742;
+      --border: #232f48;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      
+      /* Цвета сна */
+      --c-empty: #1e293b;
+      --c-bad: #ef4444;      /* < 6.0ч */
+      --c-warn: #eab308;     /* 6.0 - 6.9ч */
+      --c-good: #22c55e;     /* 7.0 - 7.9ч */
+      --c-great: #10b981;    /* 8.0 - 8.9ч */
+      --c-long: #f97316;     /* >= 9.0ч */
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      padding: 12px;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Экран блокировки (для неавторизованных пользователей) */
+    #accessDeniedScreen {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: var(--bg-primary);
+      z-index: 9999;
+      padding: 24px;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+    .denied-card {
+      background: var(--bg-card);
+      border: 1px solid #ef444444;
+      border-radius: 16px;
+      padding: 28px 20px;
+      max-width: 380px;
+    }
+    .denied-icon {
+      font-size: 54px;
+      margin-bottom: 16px;
+    }
+    .denied-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #f87171;
+      margin-bottom: 10px;
+    }
+    .denied-desc {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Главный контейнер */
+    .app-container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    /* Шапка */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .header h1 {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .header .year-badge {
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+    .user-tag {
+      font-size: 12px;
+      color: var(--text-muted);
+      background: var(--bg-card);
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+    }
+
+    /* Карточки статистики */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 8px;
+      text-align: center;
+    }
+    .stat-val {
+      font-size: 17px;
+      font-weight: 800;
+      color: #fff;
+    }
+    .stat-label {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Блок быстрой записи сна */
+    .quick-log-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 16px;
+    }
+    .quick-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .quick-inputs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    .quick-inputs input[type="date"] {
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 13px;
+      outline: none;
+      flex: 1;
+      min-width: 130px;
+    }
+    .quick-inputs input[type="number"] {
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 13px;
+      outline: none;
+      width: 90px;
+    }
+    .preset-hours {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      margin-bottom: 10px;
+    }
+    .preset-btn {
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s;
+    }
+    .preset-btn:active, .preset-btn.active {
+      background: var(--accent);
+      color: #0b0f19;
+      border-color: var(--accent);
+    }
+    .btn-save-primary {
+      width: 100%;
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #fff;
+      border: none;
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+      transition: transform 0.1s, opacity 0.2s;
+    }
+    .btn-save-primary:active {
+      transform: scale(0.98);
+      opacity: 0.9;
+    }
+
+    /* Тепловая карта */
+    .map-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 16px;
+    }
+    .map-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .map-title {
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .legend {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+    .legend-item {
+      display: inline-block;
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+    }
+
+    /* Скроллируемая область карты */
+    .heatmap-wrapper {
+      overflow-x: auto;
+      padding-bottom: 6px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .heatmap-container {
+      display: inline-block;
+      min-width: 650px;
+    }
+    .months-row {
+      display: flex;
+      margin-left: 24px;
+      margin-bottom: 6px;
+      height: 14px;
+    }
+    .month-label {
+      font-size: 10px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+    .grid-with-days {
+      display: flex;
+      gap: 6px;
+    }
+    .weekdays-col {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      justify-content: space-between;
+      padding-top: 1px;
+    }
+    .weekday-label {
+      font-size: 9px;
+      color: var(--text-muted);
+      height: 11px;
+      line-height: 11px;
+      text-align: right;
+      width: 16px;
+    }
+    .dots-grid {
+      display: grid;
+      grid-template-rows: repeat(7, 11px);
+      grid-auto-flow: column;
+      grid-auto-columns: 11px;
+      gap: 3px;
+    }
+    .dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.1s;
+      position: relative;
+    }
+    .dot:hover {
+      transform: scale(1.4);
+      z-index: 10;
+    }
+    .dot.empty {
+      background-color: var(--c-empty);
+      border: 1px solid #334155;
+    }
+    .dot.bad { background-color: var(--c-bad); box-shadow: 0 0 4px rgba(239, 68, 68, 0.4); }
+    .dot.warn { background-color: var(--c-warn); box-shadow: 0 0 4px rgba(234, 179, 8, 0.4); }
+    .dot.good { background-color: var(--c-good); box-shadow: 0 0 4px rgba(34, 197, 94, 0.4); }
+    .dot.great { background-color: var(--c-great); box-shadow: 0 0 4px rgba(16, 185, 129, 0.4); }
+    .dot.long { background-color: var(--c-long); box-shadow: 0 0 4px rgba(249, 115, 22, 0.4); }
+
+    /* Всплывающее окно редактирования дня */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      width: 100%;
+      max-width: 320px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+    .modal-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .modal-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+    .modal-field {
+      margin-bottom: 12px;
+    }
+    .modal-field label {
+      display: block;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    .modal-field input {
+      width: 100%;
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      color: #fff;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+    }
+    .modal-buttons {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    .btn-modal-save {
+      flex: 1;
+      background: #10b981;
+      color: #fff;
+      border: none;
+      padding: 10px;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-modal-cancel {
+      flex: 1;
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 10px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* Уведомление (Toast) */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: #10b981;
+      color: #ffffff;
+      padding: 10px 18px;
+      border-radius: 30px;
+      font-size: 13px;
+      font-weight: 700;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      z-index: 2000;
+      transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      pointer-events: none;
+    }
+    #toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Экран ограничения доступа -->
+  <div id="accessDeniedScreen">
+    <div class="denied-card">
+      <div class="denied-icon">🔒</div>
+      <div class="denied-title">Доступ ограничен</div>
+      <div class="denied-desc">
+        Этот трекер сна является приватным.<br><br>
+        Если вам нужен доступ, напишите боту в чат или обратитесь к администратору.
+      </div>
+    </div>
+  </div>
+
+  <!-- Главное приложение -->
+  <div class="app-container" id="appContainer">
+    <!-- Шапка -->
+    <div class="header">
+      <h1>🌙 Трекер сна <span class="year-badge">2026</span></h1>
+      <div class="user-tag" id="userBadge">ID: ...</div>
+    </div>
+
+    <!-- Статистика -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-val" id="statCount">0</div>
+        <div class="stat-label">Ночей</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="statAvg">0.0</div>
+        <div class="stat-label">Ср. часы</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="statPct">0%</div>
+        <div class="stat-label">≥ 7ч</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="statStreak">0</div>
+        <div class="stat-label">Серия дн.</div>
+      </div>
+    </div>
+
+    <!-- Быстрая запись сна (данные передаются боту СРАЗУ при нажатии кнопки сохранить!) -->
+    <div class="quick-log-card">
+      <div class="quick-title">
+        <span>⚡ БЫСТРАЯ ЗАПИСЬ СНА</span>
+        <span style="font-size:11px; color:#10b981;">● авто-отправка боту</span>
+      </div>
+      <div class="quick-inputs">
+        <input type="date" id="inputDate" min="2026-01-01" max="2026-12-31">
+        <input type="number" id="inputHours" step="0.1" min="1" max="24" placeholder="Часы (8)">
+      </div>
+      <div class="preset-hours">
+        <button class="preset-btn" onclick="selectPreset(6.0)">6.0ч</button>
+        <button class="preset-btn" onclick="selectPreset(6.5)">6.5ч</button>
+        <button class="preset-btn" onclick="selectPreset(7.0)">7.0ч</button>
+        <button class="preset-btn" onclick="selectPreset(7.5)">7.5ч</button>
+        <button class="preset-btn" onclick="selectPreset(8.0)">8.0ч</button>
+        <button class="preset-btn" onclick="selectPreset(8.5)">8.5ч</button>
+        <button class="preset-btn" onclick="selectPreset(9.0)">9.0ч</button>
+      </div>
+      <button class="btn-save-primary" id="btnQuickSave" onclick="saveQuickLog()">
+        💾 Сохранить запись
+      </button>
+    </div>
+
+    <!-- Карта года 53 недели x 7 дней -->
+    <div class="map-card">
+      <div class="map-header">
+        <div class="map-title">Годовая карта сна</div>
+        <div class="legend">
+          <span>&lt;6ч</span>
+          <span class="legend-item" style="background:var(--c-bad)"></span>
+          <span class="legend-item" style="background:var(--c-warn)"></span>
+          <span class="legend-item" style="background:var(--c-good)"></span>
+          <span class="legend-item" style="background:var(--c-great)"></span>
+          <span class="legend-item" style="background:var(--c-long)"></span>
+          <span>9ч+</span>
+        </div>
+      </div>
+
+      <div class="heatmap-wrapper">
+        <div class="heatmap-container">
+          <div class="months-row" id="monthsRow"></div>
+          <div class="grid-with-days">
+            <div class="weekdays-col">
+              <span class="weekday-label">Пн</span>
+              <span class="weekday-label"></span>
+              <span class="weekday-label">Ср</span>
+              <span class="weekday-label"></span>
+              <span class="weekday-label">Пт</span>
+              <span class="weekday-label"></span>
+              <span class="weekday-label">Вс</span>
+            </div>
+            <div class="dots-grid" id="dotsGrid"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модальное окно дня -->
+  <div class="modal-overlay" id="dayModal">
+    <div class="modal-card">
+      <div class="modal-title" id="modalDateTitle">1 января 2026</div>
+      <div class="modal-sub" id="modalDaySub">Четверг</div>
+      <div class="modal-field">
+        <label>Длительность сна (часы):</label>
+        <input type="number" id="modalHoursInput" step="0.1" min="1" max="24" placeholder="7.5">
+      </div>
+      <div class="modal-buttons">
+        <button class="btn-modal-save" onclick="saveModalLog()">Сохранить</button>
+        <button class="btn-modal-cancel" onclick="closeModal()">Отмена</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Всплывающее сообщение -->
+  <div id="toast">✅ Сохранено и передано в чат!</div>
+
+  <script>
+    // Настройки
+    const ADMIN_ID = "1759115629";
+    const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+    if (tg) {
+      tg.expand();
+      tg.ready();
+    }
+
+    let sleepData = {};
+    let activeModalDate = null;
+
+    // Проверка доступа
+    function checkAccess() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const uidParam = urlParams.get("uid");
+      const allowedParam = urlParams.get("allowed");
+
+      let currentUserId = "";
+      if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+        currentUserId = String(tg.initDataUnsafe.user.id);
+      } else if (uidParam) {
+        currentUserId = uidParam;
+      }
+
+      document.getElementById("userBadge").innerText = currentUserId ? "ID: " + currentUserId : "ID: Гость";
+
+      // Разрешен если админ или allowed=1
+      const isAllowed = (currentUserId === ADMIN_ID) || (allowedParam === "1");
+
+      // Если открыт с явными параметрами другого пользователя без допуска
+      if (!isAllowed && uidParam && allowedParam !== "1") {
+        document.getElementById("accessDeniedScreen").style.display = "flex";
+        document.getElementById("appContainer").style.display = "none";
+        return false;
+      }
+      return true;
+    }
+
+    // Загрузка данных (из localStorage + URL)
+    function loadData() {
+      try {
+        const local = localStorage.getItem("sleep_tracker_2026");
+        if (local) {
+          sleepData = JSON.parse(local);
+        }
+      } catch (e) {
+        sleepData = {};
+      }
+
+      // Проверяем данные, переданные ботом через URL (?data=...)
+      const urlParams = new URLSearchParams(window.location.search);
+      const dataParam = urlParams.get("data") || urlParams.get("d");
+      if (dataParam) {
+        try {
+          const parsed = JSON.parse(decodeURIComponent(dataParam));
+          if (typeof parsed === "object") {
+            Object.assign(sleepData, parsed);
+            localStorage.setItem("sleep_tracker_2026", JSON.stringify(sleepData));
+          }
+        } catch (err) {
+          console.warn("Ошибка парсинга data из URL:", err);
+        }
+      }
+    }
+
+    // Автоматическая передача данных в бота без ручных кнопок!
+    function autoSendDataToBot(savedDate, duration) {
+      if (tg) {
+        // Формируем полезную нагрузку со всеми записями
+        const payload = {};
+        for (const [k, v] of Object.entries(sleepData)) {
+          if (k.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            const h = typeof v === "object" ? v.duration : Number(v);
+            if (h && !isNaN(h)) {
+              payload[k] = {
+                duration: h,
+                timestamp: (typeof v === "object" && v.timestamp) ? v.timestamp : new Date().toISOString()
+              };
+            }
+          }
+        }
+
+        // Гарантируем, что сохраненный день присутствует
+        payload[savedDate] = {
+          duration: Number(duration),
+          timestamp: new Date().toISOString()
+        };
+
+        try {
+          // Отправка данных боту мгновенно (закрывает Mini App и отправляет сообщение боту)
+          tg.sendData(JSON.stringify(payload));
+        } catch (err) {
+          console.log("tg.sendData:", err);
+        }
+      }
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById("toast");
+      if (msg) t.innerText = msg;
+      t.classList.add("show");
+      setTimeout(() => t.classList.remove("show"), 2200);
+    }
+
+    function selectPreset(hrs) {
+      document.getElementById("inputHours").value = hrs;
+      document.querySelectorAll(".preset-btn").forEach(b => {
+        if (parseFloat(b.innerText) === hrs) b.classList.add("active");
+        else b.classList.remove("active");
+      });
+    }
+
+    // Сохранение через верхнюю форму
+    function saveQuickLog() {
+      const dateVal = document.getElementById("inputDate").value;
+      const hoursVal = parseFloat(document.getElementById("inputHours").value);
+
+      if (!dateVal) {
+        alert("Пожалуйста, выберите дату");
+        return;
+      }
+      if (isNaN(hoursVal) || hoursVal <= 0 || hoursVal > 24) {
+        alert("Укажите корректные часы сна (от 1 до 24)");
+        return;
+      }
+
+      // Сохраняем в локальную память
+      sleepData[dateVal] = {
+        duration: hoursVal,
+        timestamp: new Date().toISOString()
+      };
+      localStorage.setItem("sleep_tracker_2026", JSON.stringify(sleepData));
+
+      // Обновляем визуал
+      renderGrid();
+      updateStats();
+      showToast(`✅ ${hoursVal}ч за ${dateVal} сохранено!`);
+
+      // СРАЗУ передаем данные в чат бота без дополнительных кнопок!
+      autoSendDataToBot(dateVal, hoursVal);
+    }
+
+    // Модальное окно дня
+    function openModal(dateStr, currentHrs) {
+      activeModalDate = dateStr;
+      const d = new Date(dateStr + "T00:00:00");
+      const monthNames = ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
+      const dayNames = ["Воскресенье","Понедельник","Вторник","Среда","Четверг","Пятница","Суббота"];
+
+      document.getElementById("modalDateTitle").innerText = `${d.getDate()} ${monthNames[d.getMonth()]} 2026`;
+      document.getElementById("modalDaySub").innerText = dayNames[d.getDay()];
+      document.getElementById("modalHoursInput").value = currentHrs || "";
+      document.getElementById("dayModal").style.display = "flex";
+    }
+
+    function closeModal() {
+      document.getElementById("dayModal").style.display = "none";
+      activeModalDate = null;
+    }
+
+    function saveModalLog() {
+      if (!activeModalDate) return;
+      const hoursVal = parseFloat(document.getElementById("modalHoursInput").value);
+
+      if (isNaN(hoursVal) || hoursVal <= 0 || hoursVal > 24) {
+        alert("Укажите корректные часы сна");
+        return;
+      }
+
+      sleepData[activeModalDate] = {
+        duration: hoursVal,
+        timestamp: new Date().toISOString()
+      };
+      localStorage.setItem("sleep_tracker_2026", JSON.stringify(sleepData));
+
+      const savedD = activeModalDate;
+      closeModal();
+      renderGrid();
+      updateStats();
+      showToast(`✅ ${hoursVal}ч за ${savedD} сохранено!`);
+
+      // СРАЗУ передаем данные боту!
+      autoSendDataToBot(savedD, hoursVal);
+    }
+
+    // Генерация сетки 53 недели x 7 дней
+    function renderGrid() {
+      const grid = document.getElementById("dotsGrid");
+      grid.innerHTML = "";
+
+      const startOfYear = new Date(2026, 0, 1); // Четверг
+      let current = new Date(2026, 0, 1);
+
+      // День недели для 1 янв 2026: 0 = Вс, 1 = Пн, ... 4 = Чт
+      let startDayOfWeek = (startOfYear.getDay() + 6) % 7; // Четверг = 3
+
+      // Пустые слоты до 1 января
+      for (let i = 0; i < startDayOfWeek; i++) {
+        const dummy = document.createElement("div");
+        dummy.style.visibility = "hidden";
+        grid.appendChild(dummy);
+      }
+
+      // Все 365 дней 2026 года
+      while (current.getFullYear() === 2026) {
+        const y = current.getFullYear();
+        const m = String(current.getMonth() + 1).padStart(2, "0");
+        const d = String(current.getDate()).padStart(2, "0");
+        const dateStr = `${y}-${m}-${d}`;
+
+        const dot = document.createElement("div");
+        dot.className = "dot empty";
+        dot.setAttribute("data-date", dateStr);
+
+        const record = sleepData[dateStr];
+        let hours = null;
+        if (record) {
+          hours = typeof record === "object" ? record.duration : Number(record);
+        }
+
+        if (hours !== null && !isNaN(hours)) {
+          if (hours < 6.0) dot.className = "dot bad";
+          else if (hours < 7.0) dot.className = "dot warn";
+          else if (hours < 8.0) dot.className = "dot good";
+          else if (hours < 9.0) dot.className = "dot great";
+          else dot.className = "dot long";
+          dot.title = `${dateStr}: ${hours} ч`;
+        } else {
+          dot.title = `${dateStr}: нет записи`;
+        }
+
+        dot.onclick = () => openModal(dateStr, hours);
+        grid.appendChild(dot);
+
+        current.setDate(current.getDate() + 1);
+      }
+
+      renderMonthLabels();
+    }
+
+    // Месячные метки над неделями
+    function renderMonthLabels() {
+      const row = document.getElementById("monthsRow");
+      row.innerHTML = "";
+      const months = ["Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"];
+      
+      months.forEach(m => {
+        const span = document.createElement("div");
+        span.className = "month-label";
+        span.style.width = (54) + "px";
+        span.innerText = m;
+        row.appendChild(span);
+      });
+    }
+
+    // Пересчет статистики
+    function updateStats() {
+      const entries = Object.entries(sleepData).filter(([_, v]) => {
+        const h = typeof v === "object" ? v.duration : Number(v);
+        return h && !isNaN(h) && h > 0;
+      });
+
+      const count = entries.length;
+      document.getElementById("statCount").innerText = count;
+
+      if (count === 0) {
+        document.getElementById("statAvg").innerText = "0.0";
+        document.getElementById("statPct").innerText = "0%";
+        document.getElementById("statStreak").innerText = "0";
+        return;
+      }
+
+      let totalHrs = 0;
+      let goodSleep = 0;
+
+      entries.forEach(([_, v]) => {
+        const h = typeof v === "object" ? v.duration : Number(v);
+        totalHrs += h;
+        if (h >= 7.0) goodSleep++;
+      });
+
+      const avg = (totalHrs / count).toFixed(1);
+      const pct = Math.round((goodSleep / count) * 100);
+
+      document.getElementById("statAvg").innerText = avg;
+      document.getElementById("statPct").innerText = pct + "%";
+
+      // Считаем серию
+      let streak = 0;
+      const now = new Date();
+      let checkDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      
+      for (let i = 0; i < 365; i++) {
+        const ds = checkDate.toISOString().split("T")[0];
+        if (sleepData[ds]) {
+          streak++;
+          checkDate.setDate(checkDate.getDate() - 1);
+        } else {
+          if (i === 0) {
+            checkDate.setDate(checkDate.getDate() - 1);
+            continue;
+          }
+          break;
+        }
+      }
+      document.getElementById("statStreak").innerText = streak;
+    }
+
+    // Инициализация
+    window.addEventListener("DOMContentLoaded", () => {
+      checkAccess();
+      loadData();
+      
+      const today = new Date().toISOString().split("T")[0];
+      const dateInput = document.getElementById("inputDate");
+      dateInput.value = today;
+
+      if (sleepData[today]) {
+        const rec = sleepData[today];
+        const h = typeof rec === "object" ? rec.duration : Number(rec);
+        document.getElementById("inputHours").value = h;
+        selectPreset(h);
+      } else {
+        document.getElementById("inputHours").value = "7.5";
+        selectPreset(7.5);
+      }
+
+      renderGrid();
+      updateStats();
+    });
+  </script>
+</body>
+</html>
