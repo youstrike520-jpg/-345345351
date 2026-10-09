@@ -30,14 +30,16 @@
       --text-muted: #a1a1aa;
       --text-dim: #71717a;
       
-      /* Палитра HabitKit для сна */
-      --c-tile-empty: #1c1c1f;
+      /* Спокойная монохромная палитра одного изумрудно-мятного оттенка (No-Guilt) */
+      --c-tile-empty: #18181b;
       --c-tile-border: #27272a;
-      --c-bad: #ef4444;      /* < 6.0ч (красный) */
-      --c-warn: #f59e0b;     /* 6.0 - 6.9ч (янтарный) */
-      --c-good: #22c55e;     /* 7.0 - 7.9ч (зеленый) */
-      --c-great: #10b981;    /* 8.0 - 8.9ч (фирменный мятный HabitKit) */
-      --c-long: #f97316;     /* >= 9.0ч (оранжевый) */
+      --c-frozen-border: #38bdf8;
+      
+      --c-short: #064e3b;    /* < 6.0ч (спокойный глубокий хвойный, НЕ красный) */
+      --c-mid:   #047857;    /* 6.0 – 6.9ч */
+      --c-good:  #059669;    /* 7.0 – 7.9ч */
+      --c-mint:  #10b981;    /* 8.0 – 8.9ч (фирменный чистый мятный) */
+      --c-light: #34d399;    /* >= 9.0ч (светло-мятный) */
 
       --accent-glow: rgba(16, 185, 129, 0.25);
     }
@@ -300,11 +302,16 @@
       background-color: var(--c-tile-empty);
       border: 1px solid var(--c-tile-border);
     }
-    .tile.bad   { background-color: var(--c-bad); box-shadow: 0 0 6px rgba(239, 68, 68, 0.4); }
-    .tile.warn  { background-color: var(--c-warn); box-shadow: 0 0 6px rgba(245, 158, 11, 0.4); }
-    .tile.good  { background-color: var(--c-good); box-shadow: 0 0 6px rgba(34, 197, 94, 0.4); }
-    .tile.great { background-color: var(--c-great); box-shadow: 0 0 8px rgba(16, 185, 129, 0.55); }
-    .tile.long  { background-color: var(--c-long); box-shadow: 0 0 6px rgba(249, 115, 22, 0.4); }
+    .tile.frozen {
+      background-color: var(--c-tile-empty);
+      border: 1.5px dashed var(--c-frozen-border);
+      box-shadow: 0 0 8px rgba(56, 189, 248, 0.3);
+    }
+    .tile.short { background-color: var(--c-short); }
+    .tile.mid   { background-color: var(--c-mid); }
+    .tile.good  { background-color: var(--c-good); }
+    .tile.mint  { background-color: var(--c-mint); box-shadow: 0 0 6px rgba(16, 185, 129, 0.4); }
+    .tile.light { background-color: var(--c-light); box-shadow: 0 0 8px rgba(52, 211, 153, 0.5); }
 
     /* Чипы статистики HabitKit */
     .stat-chips-row {
@@ -716,18 +723,23 @@
       </button>
     </div>
 
-    <!-- Легенда плиток HabitKit -->
+    <!-- Легенда плиток в спокойном монохромном стиле -->
     <div class="legend-card">
-      <span>Меньше сна</span>
-      <div class="legend-tiles">
-        <span class="leg-tile" style="background:var(--c-tile-empty); border:1px solid var(--c-tile-border)"></span>
-        <span class="leg-tile" style="background:var(--c-bad)"></span>
-        <span class="leg-tile" style="background:var(--c-warn)"></span>
-        <span class="leg-tile" style="background:var(--c-good)"></span>
-        <span class="leg-tile" style="background:var(--c-great)"></span>
-        <span class="leg-tile" style="background:var(--c-long)"></span>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <span class="leg-tile" style="background:#18181b; border:1.5px dashed #38bdf8;"></span>
+        <span>Заморозка ❄️</span>
       </div>
-      <span>Больше сна (9ч+)</span>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span>Меньше</span>
+        <div class="legend-tiles">
+          <span class="leg-tile" style="background:var(--c-short);" title="< 6 ч"></span>
+          <span class="leg-tile" style="background:var(--c-mid);" title="6.0 – 6.9 ч"></span>
+          <span class="leg-tile" style="background:var(--c-good);" title="7.0 – 7.9 ч"></span>
+          <span class="leg-tile" style="background:var(--c-mint);" title="8.0 – 8.9 ч"></span>
+          <span class="leg-tile" style="background:var(--c-light);" title="9+ ч"></span>
+        </div>
+        <span>Больше</span>
+      </div>
     </div>
 
   </div>
@@ -905,7 +917,7 @@
       triggerHaptic();
       renderGrid();
       updateStats();
-      showToast(`🔥 Записано ${hoursVal}ч за ${dateVal}!`);
+      showToast(`Записал: ${hoursVal} ч ✓\n+10 XP · серия сохранена`);
 
       autoSendDataToBot(dateVal, hoursVal);
     }
@@ -948,13 +960,65 @@
       triggerHaptic();
       renderGrid();
       updateStats();
-      showToast(`🔥 Записано ${hoursVal}ч за ${savedD}!`);
+      showToast(`Записал: ${hoursVal} ч ✓\n+10 XP · серия сохранена`);
 
       autoSendDataToBot(savedD, hoursVal);
     }
 
-    // Генерация сетки HabitKit (squircles)
+    let frozenDates = new Set();
+
+    function calculateSoftStreakData() {
+      const dates = Object.keys(sleepData).filter(d => d.match(/^\d{4}-\d{2}-\d{2}$/)).sort();
+      frozenDates = new Set();
+      if (dates.length === 0) return { streak: 0, best: 0, isPaused: false };
+
+      let lastFreezeIdx = -999;
+      let tempStreak = 0;
+      let bestStreak = 0;
+      
+      const start = new Date(dates[0] + "T00:00:00");
+      const end = new Date(dates[dates.length - 1] + "T00:00:00");
+      let cur = new Date(start);
+      let dayIdx = 0;
+
+      while (cur <= end) {
+        const ds = cur.toISOString().split("T")[0];
+        if (sleepData[ds]) {
+          tempStreak++;
+          if (tempStreak > bestStreak) bestStreak = tempStreak;
+        } else {
+          if ((dayIdx - lastFreezeIdx) >= 7 && tempStreak >= 2) {
+            frozenDates.add(ds);
+            lastFreezeIdx = dayIdx;
+            tempStreak++;
+            if (tempStreak > bestStreak) bestStreak = tempStreak;
+          } else {
+            tempStreak = 0;
+          }
+        }
+        cur.setDate(cur.getDate() + 1);
+        dayIdx++;
+      }
+
+      // Подсчет активного или замороженного стрика
+      let activeStreak = 0;
+      let check = new Date(end);
+      while (true) {
+        const ds = check.toISOString().split("T")[0];
+        if (sleepData[ds] || frozenDates.has(ds)) {
+          activeStreak++;
+          check.setDate(check.getDate() - 1);
+        } else {
+          break;
+        }
+      }
+
+      return { streak: activeStreak, best: Math.max(bestStreak, activeStreak) };
+    }
+
+    // Генерация сетки Milkis_sleep (squircles)
     function renderGrid() {
+      calculateSoftStreakData();
       const grid = document.getElementById("tilesGrid");
       grid.innerHTML = "";
 
@@ -987,12 +1051,15 @@
         }
 
         if (hours !== null && !isNaN(hours)) {
-          if (hours < 6.0) tile.className = "tile bad";
-          else if (hours < 7.0) tile.className = "tile warn";
+          if (hours < 6.0) tile.className = "tile short";
+          else if (hours < 7.0) tile.className = "tile mid";
           else if (hours < 8.0) tile.className = "tile good";
-          else if (hours < 9.0) tile.className = "tile great";
-          else tile.className = "tile long";
+          else if (hours < 9.0) tile.className = "tile mint";
+          else tile.className = "tile light";
           tile.title = `${dateStr}: ${hours} ч`;
+        } else if (frozenDates.has(dateStr)) {
+          tile.className = "tile frozen";
+          tile.title = `${dateStr}: Заморозка серии ❄️`;
         } else {
           tile.title = `${dateStr}: нет записи`;
         }
@@ -1056,26 +1123,9 @@
       document.getElementById("chipAvg").innerText = avg;
       document.getElementById("chipGoalPct").innerText = pct + "%";
 
-      // Текущий стрик
-      let streak = 0;
-      const now = new Date();
-      let checkDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      
-      for (let i = 0; i < 365; i++) {
-        const ds = checkDate.toISOString().split("T")[0];
-        if (sleepData[ds]) {
-          streak++;
-          checkDate.setDate(checkDate.getDate() - 1);
-        } else {
-          if (i === 0) {
-            checkDate.setDate(checkDate.getDate() - 1);
-            continue;
-          }
-          break;
-        }
-      }
-      document.getElementById("streakCount").innerText = streak;
-      document.getElementById("chipBestStreak").innerText = Math.max(streak, 14);
+      const streakRes = calculateSoftStreakData();
+      document.getElementById("streakCount").innerText = streakRes.streak;
+      document.getElementById("chipBestStreak").innerText = streakRes.best;
     }
 
     // Инструкция для iPhone
