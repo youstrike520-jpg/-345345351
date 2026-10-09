@@ -33,6 +33,17 @@
       /* Палитра в стиле кнопок Telegram: красный, желтый, зеленый, оранжевый */
       --c-tile-empty: #18181b;
       --c-tile-border: #27272a;
+    /* 9-уровневая шкала Качества сна (по ТЗ пользователя) */
+    --c-q1: #B83A48;
+    --c-q2: #D65A45;
+    --c-q3: #E98A45;
+    --c-q4: #EDA947;
+    --c-q5: #E4C85A;
+    --c-q6: #B9CB67;
+    --c-q7: #83BC77;
+    --c-q8: #4BA887;
+    --c-q9: #256BB0;
+
       --c-frozen-border: #38bdf8;
       
       --c-bad:   #ef4444;    /* < 6.0ч 🔴 */
@@ -306,12 +317,16 @@
       border: 1.5px dashed var(--c-frozen-border);
       box-shadow: 0 0 8px rgba(56, 189, 248, 0.3);
     }
-    .tile.lvl-1 { background-color: #27273a; border: 1px solid #33334d; }
-    .tile.lvl-2 { background-color: #3e3d6b; }
-    .tile.lvl-3 { background-color: #5d5cb2; }
-    .tile.lvl-4 { background-color: #818cf8; box-shadow: 0 0 6px rgba(129, 140, 248, 0.5); }
-    .tile.lvl-5 { background-color: #6366f1; }
-    .tile.frozen { background-color: var(--c-tile-empty); border: 1.5px dashed #818cf8 !important; }
+        .tile.q1 { background-color: #B83A48; box-shadow: 0 0 5px rgba(184, 58, 72, 0.4); }
+    .tile.q2 { background-color: #D65A45; }
+    .tile.q3 { background-color: #E98A45; }
+    .tile.q4 { background-color: #EDA947; }
+    .tile.q5 { background-color: #E4C85A; }
+    .tile.q6 { background-color: #B9CB67; }
+    .tile.q7 { background-color: #83BC77; }
+    .tile.q8 { background-color: #4BA887; }
+    .tile.q9 { background-color: #256BB0; box-shadow: 0 0 6px rgba(37, 107, 176, 0.5); }
+    .tile.frozen { background-color: var(--c-tile-empty); border: 1.5px dashed #4BA887 !important; }
     
     /* Ступени и прогресс */
     .stages-card {
@@ -920,13 +935,15 @@
         <input type="number" id="inputHours" step="0.1" min="1" max="24" placeholder="7.5">
       </div>
       <div class="preset-pills-scroll">
-        <button class="preset-pill" onclick="selectPreset(6.0)">6 ч</button>
-        <button class="preset-pill" onclick="selectPreset(6.5)">6.5 ч</button>
-        <button class="preset-pill" onclick="selectPreset(7.0)">7 ч</button>
-        <button class="preset-pill" onclick="selectPreset(7.5)">7.5 ч</button>
-        <button class="preset-pill" onclick="selectPreset(8.0)">8 ч</button>
-        <button class="preset-pill" onclick="selectPreset(8.5)">8.5 ч</button>
-        <button class="preset-pill" onclick="selectPreset(9.0)">9 ч</button>
+        <button class="preset-pill" style="border-left: 3px solid #B83A48;" onclick="selectPreset(5.0)">5 ч 🔴</button>
+        <button class="preset-pill" style="border-left: 3px solid #D65A45;" onclick="selectPreset(5.5)">5.5 ч 🔴</button>
+        <button class="preset-pill" style="border-left: 3px solid #E98A45;" onclick="selectPreset(6.0)">6 ч 🟠</button>
+        <button class="preset-pill" style="border-left: 3px solid #EDA947;" onclick="selectPreset(6.5)">6.5 ч 🟠</button>
+        <button class="preset-pill" style="border-left: 3px solid #E4C85A;" onclick="selectPreset(7.0)">7 ч 🟡</button>
+        <button class="preset-pill" style="border-left: 3px solid #B9CB67;" onclick="selectPreset(7.5)">7.5 ч 🍏</button>
+        <button class="preset-pill" style="border-left: 3px solid #83BC77;" onclick="selectPreset(8.0)">8 ч 🟢</button>
+        <button class="preset-pill" style="border-left: 3px solid #4BA887;" onclick="selectPreset(8.5)">8.5 ч 🟢</button>
+        <button class="preset-pill" style="border-left: 3px solid #256BB0;" onclick="selectPreset(9.0)">9+ ч 🔵</button>
       </div>
             <div class="feeling-section">
         <div class="feeling-label">УТРЕННЕЕ САМОЧУВСТВИЕ (+10 XP):</div>
@@ -943,18 +960,73 @@
     </div>
 
     <!-- Легенда плиток (цвета как в кнопках бота) -->
-    <div class="legend-card" style="padding: 12px 16px; border-radius: 16px; margin-bottom: 16px;">
-      <div style="font-size: 11px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 8px; font-weight: 600;">
-        Спокойная шкала сна (без штрафных цветов):
+        <!-- Легенда качества сна (по образцу пользователя) -->
+    <div class="legend-card" style="padding: 16px; border-radius: 18px; margin-bottom: 16px; background: var(--card-bg); border: 1px solid var(--card-border);">
+      <div style="font-weight: 700; font-size: 15px; color: #fff; text-align: center; margin-bottom: 14px;">
+        Качество сна
       </div>
-      <div style="display:flex; flex-wrap:wrap; align-items:center; gap:10px; font-size:11px; color:var(--text-muted);">
-        <div style="display:flex; align-items:center; gap:4px;"><span class="leg-tile" style="background:#27273a; border:1px solid #33334d;"></span> <span>&lt;6 ч</span></div>
-        <div style="display:flex; align-items:center; gap:4px;"><span class="leg-tile" style="background:#3e3d6b;"></span> <span>6–7 ч</span></div>
-        <div style="display:flex; align-items:center; gap:4px;"><span class="leg-tile" style="background:#5d5cb2;"></span> <span>7–8 ч</span></div>
-        <div style="display:flex; align-items:center; gap:4px;"><span class="leg-tile" style="background:#818cf8; box-shadow:0 0 4px #818cf8;"></span> <span>8–9 ч ★ Цель</span></div>
-        <div style="display:flex; align-items:center; gap:4px;"><span class="leg-tile" style="background:#6366f1;"></span> <span>&gt;9 ч</span></div>
-        <div style="display:flex; align-items:center; gap:4px;"><span class="leg-tile" style="background:#18181b; border:1.5px dashed #818cf8;"></span> <span>Заморозка ❄️</span></div>
+      
+      <!-- 9 плашек цветов с номерами и HEX -->
+      <div style="display: grid; grid-template-columns: repeat(9, 1fr); gap: 4px; text-align: center; margin-bottom: 12px;">
+        <div>
+          <div style="background:#B83A48; height:24px; border-radius:6px; margin-bottom:4px;"></div>
+          <div style="font-size:11px; font-weight:700; color:#fff;">1</div>
+          <div style="font-size:8px; color:var(--text-dim);">#B83A48</div>
+        </div>
+        <div>
+          <div style="background:#D65A45; height:24px; border-radius:6px; margin-bottom:4px;"></div>
+          <div style="font-size:11px; font-weight:700; color:#fff;">2</div>
+          <div style="font-size:8px; color:var(--text-dim);">#D65A45</div>
+        </div>
+        <div>
+          <div style="background:#E98A45; height:24px; border-radius:6px; margin-bottom:4px;"></div>
+          <div style="font-size:11px; font-weight:700; color:#fff;">3</div>
+          <div style="font-size:8px; color:var(--text-dim);">#E98A45</div>
+        </div>
+        <div>
+          <div style="background:#EDA947; height:24px; border-radius:6px; margin-bottom:4px;"></div>
+          <div style="font-size:11px; font-weight:700; color:#fff;">4</div>
+          <div style="font-size:8px; color:var(--text-dim);">#EDA947</div>
+        </div>
+        <div>
+          <div style="background:#E4C85A; height:24px; border-radius:6px; margin-bottom:4px;"></div>
+          <div style="font-size:11px; font-weight:700; color:#fff;">5</div>
+          <div style="font-size:8px; color:var(--text-dim);">#E4C85A</div>
+        </div>
+        <div>
+          <div style="background:#B9CB67; height:24px; border-radius:6px; margin-bottom:4px;"></div>
+          <div style="font-size:11px; font-weight:700; color:#fff;">6</div>
+          <div style="font-size:8px; color:var(--text-dim);">#B9CB67</div>
+        </div>
+        <div>
+          <div style="background:#83BC77; height:24px; border-radius:6px; margin-bottom:4px;"></div>
+          <div style="font-size:11px; font-weight:700; color:#fff;">7</div>
+          <div style="font-size:8px; color:var(--text-dim);">#83BC77</div>
+        </div>
+        <div>
+          <div style="background:#4BA887; height:24px; border-radius:6px; margin-bottom:4px;"></div>
+          <div style="font-size:11px; font-weight:700; color:#fff;">8</div>
+          <div style="font-size:8px; color:var(--text-dim);">#4BA887</div>
+        </div>
+        <div>
+          <div style="background:#256BB0; height:24px; border-radius:6px; margin-bottom:4px;"></div>
+          <div style="font-size:11px; font-weight:700; color:#fff;">9</div>
+          <div style="font-size:8px; color:var(--text-dim);">#256BB0</div>
+        </div>
       </div>
+
+      <!-- Подписи: Плохой сон — Средний — Отличный сон -->
+      <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-muted); margin-bottom:6px;">
+        <span>Плохой сон (≤5 ч)</span>
+        <span>Средний (7 ч)</span>
+        <span>Отличный сон (≥9 ч)</span>
+      </div>
+
+      <!-- Стрелка от плохого к хорошему -->
+      <div style="border-top:1px solid #3f3f46; position:relative; margin-top:8px; padding-top:6px; text-align:center;">
+        <span style="font-size:10px; color:var(--text-dim);">От плохого к хорошему →</span>
+      </div>
+    </div>
     </div>
 
   </div>
@@ -1265,12 +1337,16 @@
           hours = typeof record === "object" ? record.duration : Number(record);
         }
 
-        if (hours !== null && !isNaN(hours)) {
-          if (hours < 6.0) tile.className = "tile lvl-1";
-          else if (hours < 7.0) tile.className = "tile lvl-2";
-          else if (hours < 8.0) tile.className = "tile lvl-3";
-          else if (hours <= 9.0) tile.className = "tile lvl-4";
-          else tile.className = "tile lvl-5";
+                if (hours !== null && !isNaN(hours)) {
+          if (hours < 5.25) tile.className = "tile q1";
+          else if (hours < 5.75) tile.className = "tile q2";
+          else if (hours < 6.25) tile.className = "tile q3";
+          else if (hours < 6.75) tile.className = "tile q4";
+          else if (hours < 7.25) tile.className = "tile q5";
+          else if (hours < 7.75) tile.className = "tile q6";
+          else if (hours < 8.25) tile.className = "tile q7";
+          else if (hours < 8.75) tile.className = "tile q8";
+          else tile.className = "tile q9";
           tile.title = `${dateStr}: ${hours} ч`;
         } else if (frozenDates.has(dateStr)) {
           tile.className = "tile frozen";
