@@ -29,19 +29,20 @@
       --text-muted: #a1a1aa;
       --text-dim: #71717a;
 
-      /* 3 уровня сна (согласно ТЗ, без красного и оранжевого) */
-      --c-sleep-low: #27272a;       /* < 6 ч: нейтральный серый */
-      --c-sleep-low-text: #a1a1aa;
-      --c-sleep-mid: #166534;       /* 6–7.5 ч: светло-зеленый (почти цель) */
-      --c-sleep-mid-text: #86efac;
-      --c-sleep-mid-border: #22c55e;
-      --c-sleep-high: #059669;      /* ≥ 8 ч: насыщенный зеленый (цель) */
-      --c-sleep-high-text: #ffffff;
-      --c-sleep-high-glow: rgba(16, 185, 129, 0.45);
+              /* 4 логических цвета качества сна:
+       🔴 <6 ч: #ef4444 (недосып)
+       🟡 6-7 ч: #eab308 (средний)
+       🟢 7-8.5 ч: #22c55e (цель / отличный)
+       🟠 9+ ч: #f97316 (пересып / долгий сон)
+    */
+    --c-bad: #ef4444;
+    --c-warn: #eab308;
+    --c-good: #22c55e;
+    --c-long: #f97316;
 
-      --c-tile-empty: #18181b;      /* пустая ячейка: светлее фона */
-      --c-tile-border: #2a2a30;     /* тонкая обводка пустой ячейки */
-      --c-freeze: #34d399;          /* пунктирная рамка заморозки/пропуска */
+    --c-tile-empty: #18181b;
+    --c-tile-border: #2a2a30;
+    --c-freeze: #22c55e;
     }
 
     * {
@@ -412,42 +413,18 @@
       margin-top: 5px;
     }
 
-    /* Классы раскраски ячеек (3 уровня) */
-    .week-cell.cell-empty {
-      background-color: var(--c-tile-empty);
-      border: 1px solid var(--c-tile-border);
-      color: var(--text-dim);
-    }
-    .week-cell.cell-frozen {
-      background-color: var(--c-tile-empty);
-      border: 1.5px dashed var(--c-freeze) !important;
-      color: #34d399;
-    }
-    .week-cell.cell-low {
-      background-color: var(--c-sleep-low);
-      border: 1px solid #3f3f46;
-      color: var(--c-sleep-low-text);
-    }
-    .week-cell.cell-mid {
-      background-color: var(--c-sleep-mid);
-      border: 1px solid var(--c-sleep-mid-border);
-      color: var(--c-sleep-mid-text);
-    }
-    .week-cell.cell-high {
-      background-color: var(--c-sleep-high);
-      border: 1px solid #34d399;
-      color: var(--c-sleep-high-text);
-      box-shadow: 0 0 8px var(--c-sleep-high-glow);
-    }
+            /* Классы ячеек 4 недель и годовой карты (4 цвета) */
+    .week-cell.cell-empty, .tile.empty { background-color: var(--c-tile-empty); border: 1px solid var(--c-tile-border); color: #52525b; }
+    .week-cell.cell-frozen, .tile.frozen { background-color: var(--c-tile-empty); border: 1.5px dashed var(--c-freeze) !important; color: var(--c-freeze); }
 
-    .week-cell.today-cell {
-      outline: 2px solid #38bdf8;
-      outline-offset: 1px;
-    }
-    .week-cell.future-cell {
-      opacity: 0.25;
-      cursor: default;
-    }
+    .week-cell.bad, .tile.bad { background-color: var(--c-bad); color: #fff; box-shadow: 0 0 6px rgba(239, 68, 68, 0.4); }
+    .week-cell.warn, .tile.warn { background-color: var(--c-warn); color: #18181b; }
+    .week-cell.good, .tile.good { background-color: var(--c-good); color: #fff; box-shadow: 0 0 8px rgba(34, 197, 94, 0.45); }
+    .week-cell.long, .tile.long { background-color: var(--c-long); color: #fff; }
+
+    /* Сегодня и будущее */
+    .week-cell.today-cell { outline: 2px solid #38bdf8; outline-offset: 1px; }
+    .week-cell.future-cell { opacity: 0.25; cursor: default; }
 
     /* Легенда строго в одну строку */
     .legend-inline {
@@ -528,17 +505,7 @@
       grid-auto-columns: 10px;
       gap: 4px;
     }
-    .tile {
-      width: 10px;
-      height: 10px;
-      border-radius: 3px;
-      cursor: pointer;
-    }
-    .tile.empty { background-color: var(--c-tile-empty); border: 1px solid var(--c-tile-border); }
-    .tile.frozen { background-color: var(--c-tile-empty); border: 1.2px dashed var(--c-freeze); }
-    .tile.lvl-low { background-color: var(--c-sleep-low); }
-    .tile.lvl-mid { background-color: #22c55e; }
-    .tile.lvl-high { background-color: #10b981; box-shadow: 0 0 4px var(--c-sleep-high-glow); }
+        .tile { width: 10px; height: 10px; border-radius: 3px; cursor: pointer; }
 
     /* Чипы статистики */
     .stat-chips-row {
@@ -852,12 +819,15 @@
         <div class="weeks-grid" id="weeksGrid"></div>
 
         <!-- Легенда строго в одну строку -->
-        <div class="legend-inline">
-          <span>⚪ &lt;6 ч мало сна</span>
+                        <!-- Легенда 4 цветов в одну строку -->
+        <div class="legend-inline" style="display:flex; justify-content:center; align-items:center; gap:8px; font-size:11px; margin-top:14px; padding-top:10px; border-top:1px solid var(--card-border); color:var(--text-dim); white-space:nowrap; overflow:hidden;">
+          <span>🔴 &lt;6 ч недосып</span>
           <span class="leg-sep">•</span>
-          <span>🟩 6–7.5 ч почти цель</span>
+          <span>🟡 6–7 ч средний</span>
           <span class="leg-sep">•</span>
-          <span>🟢 8 ч+ цель</span>
+          <span>🟢 7–8.5 ч цель</span>
+          <span class="leg-sep">•</span>
+          <span>🟠 9+ ч пересып</span>
         </div>
       </div>
     </div>
@@ -952,14 +922,16 @@
         <input type="date" id="inputDate" min="2026-01-01" max="2026-12-31">
         <input type="number" id="inputHours" step="0.1" min="1" max="24" placeholder="8.0">
       </div>
-      <div class="preset-pills-scroll">
-        <button class="preset-pill" onclick="selectPreset(6.0)">6 ч</button>
-        <button class="preset-pill" onclick="selectPreset(6.5)">6.5 ч</button>
-        <button class="preset-pill" onclick="selectPreset(7.0)">7 ч</button>
-        <button class="preset-pill" onclick="selectPreset(7.5)">7.5 ч</button>
-        <button class="preset-pill active" onclick="selectPreset(8.0)">8 ч ★</button>
-        <button class="preset-pill" onclick="selectPreset(8.5)">8.5 ч</button>
-        <button class="preset-pill" onclick="selectPreset(9.0)">9 ч</button>
+                  <div class="preset-pills-scroll">
+        <button class="preset-pill" style="border-left: 3px solid #ef4444;" onclick="selectPreset(5.0)">5 ч 🔴</button>
+        <button class="preset-pill" style="border-left: 3px solid #ef4444;" onclick="selectPreset(5.5)">5.5 ч 🔴</button>
+        <button class="preset-pill" style="border-left: 3px solid #eab308;" onclick="selectPreset(6.0)">6 ч 🟡</button>
+        <button class="preset-pill" style="border-left: 3px solid #eab308;" onclick="selectPreset(6.5)">6.5 ч 🟡</button>
+        <button class="preset-pill" style="border-left: 3px solid #22c55e;" onclick="selectPreset(7.0)">7 ч 🟢</button>
+        <button class="preset-pill" style="border-left: 3px solid #22c55e;" onclick="selectPreset(7.5)">7.5 ч 🟢</button>
+        <button class="preset-pill active" style="border-left: 3px solid #22c55e; font-weight:800;" onclick="selectPreset(8.0)">8 ч 🟢</button>
+        <button class="preset-pill" style="border-left: 3px solid #22c55e;" onclick="selectPreset(8.5)">8.5 ч 🟢</button>
+        <button class="preset-pill" style="border-left: 3px solid #f97316;" onclick="selectPreset(9.0)">9+ ч 🟠</button>
       </div>
 
       <button class="btn-habitkit-save" onclick="saveQuickLog()">
@@ -997,6 +969,15 @@
     }
 
     let sleepData = {};
+
+        function getSleepColorClass(hours) {
+      if (hours === null || isNaN(hours) || hours <= 0) return "cell-empty";
+      if (hours < 6.0) return "bad";   // 🔴 < 6 ч: недосып
+      if (hours < 7.0) return "warn";  // 🟡 6.0 – 6.9 ч: средний
+      if (hours <= 8.5) return "good"; // 🟢 7.0 – 8.5 ч: цель / отличный
+      return "long";                   // 🟠 >= 8.6 ч (9+ ч): пересып / долгий сон
+    }
+
     let activeModalDate = null;
     let currentView = "weeks"; // 'weeks' или 'year'
     let frozenDates = new Set();
@@ -1090,31 +1071,6 @@
       }
     }
 
-    // Авто-отправка боту
-    function autoSendDataToBot(savedDate, duration) {
-      if (tg) {
-        const payload = {};
-        for (const [k, v] of Object.entries(sleepData)) {
-          if (k.match(/^\d{4}-\d{2}-\d{2}$/)) {
-            const h = typeof v === "object" ? v.duration : Number(v);
-            if (h && !isNaN(h)) {
-              payload[k] = {
-                duration: h,
-                timestamp: (typeof v === "object" && v.timestamp) ? v.timestamp : new Date().toISOString()
-              };
-            }
-          }
-        }
-        payload[savedDate] = {
-          duration: Number(duration),
-          timestamp: new Date().toISOString()
-        };
-        try {
-          tg.sendData(JSON.stringify(payload));
-        } catch (err) {}
-      }
-    }
-
     function showToast(msg) {
       const t = document.getElementById("toast");
       if (msg) t.innerText = msg;
@@ -1153,7 +1109,7 @@
       triggerHaptic();
       renderAll();
       showToast(`Записал: ${hoursVal} ч ✓\n+10 XP · серия сохранена`);
-      autoSendDataToBot(dateVal, hoursVal);
+      // autoSendDataToBot отключен: остаемся внутри Mini App без выброса в чат
     }
 
     function openModal(dateStr, currentHrs) {
@@ -1194,7 +1150,7 @@
       triggerHaptic();
       renderAll();
       showToast(`Записал: ${hoursVal} ч ✓\n+10 XP · серия сохранена`);
-      autoSendDataToBot(savedD, hoursVal);
+      // autoSendDataToBot отключен: остаемся внутри Mini App без выброса в чат
     }
 
     // Расчет стрика: при 0 «Начните серию», огонёк только от 3 дней
@@ -1271,30 +1227,24 @@
         let badgeText = "Почти цель";
         let goalStatusText = "";
 
-        if (hours < 6.0) {
-          badgeClass = "badge-low";
-          colorClass = "color-low";
-          badgeText = "Мало сна";
-          goalStatusText = `До цели ${(USER_GOAL - hours).toFixed(1)} ч`;
-        } else if (hours < 8.0) {
-          badgeClass = "badge-mid";
-          colorClass = "color-mid";
-          badgeText = "Почти цель";
-          goalStatusText = `До цели ${(USER_GOAL - hours).toFixed(1)} ч`;
-        } else {
-          badgeClass = "badge-high";
-          colorClass = "color-high";
-          badgeText = "Цель выполнена";
-          goalStatusText = `Цель выполнена ✓`;
-        }
+        const qCls = getSleepColorClass(hours);
+        let badgeColor = "#256BB0";
+        let badgeText = "Отличный сон";
+        if (qCls === "q1" || qCls === "q2") { badgeColor = "#B83A48"; badgeText = "Мало сна"; }
+        else if (qCls === "q3" || qCls === "q4") { badgeColor = "#E98A45"; badgeText = "Ниже нормы"; }
+        else if (qCls === "q5") { badgeColor = "#E4C85A"; badgeText = "Средний сон"; }
+        else if (qCls === "q6" || qCls === "q7" || qCls === "q8") { badgeColor = "#4BA887"; badgeText = "Хороший сон"; }
+        else { badgeColor = "#256BB0"; badgeText = "Цель выполнена"; }
+
+        const goalStatusText = hours >= USER_GOAL ? "Цель выполнена ✓" : `До цели ${(USER_GOAL - hours).toFixed(1)} ч`;
 
         card.innerHTML = `
           <div class="today-header">
             <span class="today-label">ПРОШЛАЯ НОЧЬ · ${formattedDate}</span>
-            <span class="today-badge ${badgeClass}">${badgeText}</span>
+            <span class="today-badge" style="background:${badgeColor}22; color:${badgeColor}; border:1px solid ${badgeColor}44;">${badgeText}</span>
           </div>
           <div class="today-body">
-            <div class="today-hours ${colorClass}">
+            <div class="today-hours" style="color:${badgeColor};">
               ${hours.toFixed(1)}<span class="today-unit">ч</span>
             </div>
             <div class="today-status ${hours >= USER_GOAL ? 'status-done' : 'status-need'}">
@@ -1389,10 +1339,8 @@
         let content = `<span class="cell-date-num">${dayNum}</span>`;
 
         if (h !== null && !isNaN(h) && h > 0) {
-          if (h < 6.0) cell.className = "week-cell cell-low";
-          else if (h < 8.0) cell.className = "week-cell cell-mid";
-          else cell.className = "week-cell cell-high";
-          
+          const q = getSleepColorClass(h);
+          cell.className = `week-cell ${q}`;
           if (isToday) cell.classList.add("today-cell");
           content += `<span class="cell-hours-val">${h.toFixed(1)}</span>`;
         } else if (frozenDates.has(ds)) {
@@ -1454,9 +1402,8 @@
         }
 
         if (hours !== null && !isNaN(hours) && hours > 0) {
-          if (hours < 6.0) tile.className = "tile lvl-low";
-          else if (hours < 8.0) tile.className = "tile lvl-mid";
-          else tile.className = "tile lvl-high";
+          const q = getSleepColorClass(hours);
+          tile.className = `tile ${q}`;
           tile.title = `${dateStr}: ${hours} ч`;
         } else if (frozenDates.has(dateStr)) {
           tile.className = "tile frozen";
