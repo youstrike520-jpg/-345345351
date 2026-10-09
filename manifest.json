@@ -1,7 +1,7 @@
 {
-  "name": "Трекер Сна 2026",
-  "short_name": "Сон 2026",
-  "description": "Приватный трекер сна в стиле HabitKit",
+  "name": "Трекер Сна · Milkis_sleep",
+  "short_name": "Milkis_sleep",
+  "description": "Приватный трекер сна Milkis_sleep 2026",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#09090b",
