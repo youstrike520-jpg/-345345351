@@ -30,16 +30,15 @@
       --text-muted: #a1a1aa;
       --text-dim: #71717a;
       
-      /* Спокойная монохромная палитра одного изумрудно-мятного оттенка (No-Guilt) */
+      /* Палитра в стиле кнопок Telegram: красный, желтый, зеленый, оранжевый */
       --c-tile-empty: #18181b;
       --c-tile-border: #27272a;
       --c-frozen-border: #38bdf8;
       
-      --c-short: #064e3b;    /* < 6.0ч (спокойный глубокий хвойный, НЕ красный) */
-      --c-mid:   #047857;    /* 6.0 – 6.9ч */
-      --c-good:  #059669;    /* 7.0 – 7.9ч */
-      --c-mint:  #10b981;    /* 8.0 – 8.9ч (фирменный чистый мятный) */
-      --c-light: #34d399;    /* >= 9.0ч (светло-мятный) */
+      --c-bad:   #ef4444;    /* < 6.0ч 🔴 */
+      --c-warn:  #eab308;    /* 6.0 – 6.9ч 🟡 */
+      --c-good:  #22c55e;    /* 7.0 – 8.9ч 🟢 */
+      --c-long:  #f97316;    /* >= 9.0ч 🟠 */
 
       --accent-glow: rgba(16, 185, 129, 0.25);
     }
@@ -307,11 +306,59 @@
       border: 1.5px dashed var(--c-frozen-border);
       box-shadow: 0 0 8px rgba(56, 189, 248, 0.3);
     }
-    .tile.short { background-color: var(--c-short); }
-    .tile.mid   { background-color: var(--c-mid); }
-    .tile.good  { background-color: var(--c-good); }
-    .tile.mint  { background-color: var(--c-mint); box-shadow: 0 0 6px rgba(16, 185, 129, 0.4); }
-    .tile.light { background-color: var(--c-light); box-shadow: 0 0 8px rgba(52, 211, 153, 0.5); }
+    .tile.lvl-1 { background-color: #27273a; border: 1px solid #33334d; }
+    .tile.lvl-2 { background-color: #3e3d6b; }
+    .tile.lvl-3 { background-color: #5d5cb2; }
+    .tile.lvl-4 { background-color: #818cf8; box-shadow: 0 0 6px rgba(129, 140, 248, 0.5); }
+    .tile.lvl-5 { background-color: #6366f1; }
+    .tile.frozen { background-color: var(--c-tile-empty); border: 1.5px dashed #818cf8 !important; }
+    
+    /* Ступени и прогресс */
+    .stages-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .stage-item {
+      margin-bottom: 12px;
+    }
+    .stage-item:last-child {
+      margin-bottom: 0;
+    }
+    .stage-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      margin-bottom: 5px;
+      font-weight: 600;
+    }
+    .stage-bar-bg {
+      background: #1f1f23;
+      height: 7px;
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .stage-bar-fill {
+      background: linear-gradient(90deg, #6366f1, #818cf8);
+      height: 100%;
+      border-radius: 99px;
+      transition: width 0.3s;
+    }
+    .self-comp-box {
+      background: rgba(129, 140, 248, 0.08);
+      border: 1px solid rgba(129, 140, 248, 0.22);
+      border-radius: 14px;
+      padding: 12px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #c7d2fe;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
 
     /* Чипы статистики HabitKit */
     .stat-chips-row {
@@ -824,6 +871,44 @@
       </div>
     </div>
 
+    <!-- Прогресс относительно себя -->
+    <div class="self-comp-box" id="selfCompBox">
+      <span>📈</span>
+      <span id="selfCompText">За неделю 0 из 7 ночей в зоне 7–8 ч</span>
+    </div>
+
+    <!-- Блок Ступени: Режим 3 недели -> 1 месяц -> Квартал -->
+    <div class="stages-card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <span style="font-weight:700; font-size:14px; color:#f4f4f5;">🏔️ Ступени режима</span>
+        <span style="font-size:11px; color:var(--text-dim);">целевой сон</span>
+      </div>
+      
+      <div class="stage-item">
+        <div class="stage-header">
+          <span>🌿 Режим 3 недели</span>
+          <span id="stage3wText" style="color:#a5b4fc;">0 / 21 ночей</span>
+        </div>
+        <div class="stage-bar-bg"><div class="stage-bar-fill" id="stage3wBar" style="width:0%;"></div></div>
+      </div>
+
+      <div class="stage-item" style="margin-top:10px;">
+        <div class="stage-header">
+          <span>🌙 Режим 1 месяц</span>
+          <span id="stage1mText" style="color:#a5b4fc;">0 / 30 ночей</span>
+        </div>
+        <div class="stage-bar-bg"><div class="stage-bar-fill" id="stage1mBar" style="width:0%;"></div></div>
+      </div>
+
+      <div class="stage-item" style="margin-top:10px;">
+        <div class="stage-header">
+          <span>⭐️ Квартал</span>
+          <span id="stageQuarterText" style="color:#a5b4fc;">0 / 90 ночей</span>
+        </div>
+        <div class="stage-bar-bg"><div class="stage-bar-fill" id="stageQuarterBar" style="width:0%;"></div></div>
+      </div>
+    </div>
+
     <!-- Быстрая запись сна (One-Tap HabitKit Log) -->
     <div class="quick-entry-card">
       <div class="quick-header">
@@ -835,13 +920,13 @@
         <input type="number" id="inputHours" step="0.1" min="1" max="24" placeholder="7.5">
       </div>
       <div class="preset-pills-scroll">
-        <button class="preset-pill" onclick="selectPreset(6.0)">6.0ч</button>
-        <button class="preset-pill" onclick="selectPreset(6.5)">6.5ч</button>
-        <button class="preset-pill" onclick="selectPreset(7.0)">7.0ч</button>
-        <button class="preset-pill" onclick="selectPreset(7.5)">7.5ч</button>
-        <button class="preset-pill" onclick="selectPreset(8.0)">8.0ч</button>
-        <button class="preset-pill" onclick="selectPreset(8.5)">8.5ч</button>
-        <button class="preset-pill" onclick="selectPreset(9.0)">9.0ч</button>
+        <button class="preset-pill" onclick="selectPreset(6.0)">6 ч</button>
+        <button class="preset-pill" onclick="selectPreset(6.5)">6.5 ч</button>
+        <button class="preset-pill" onclick="selectPreset(7.0)">7 ч</button>
+        <button class="preset-pill" onclick="selectPreset(7.5)">7.5 ч</button>
+        <button class="preset-pill" onclick="selectPreset(8.0)">8 ч</button>
+        <button class="preset-pill" onclick="selectPreset(8.5)">8.5 ч</button>
+        <button class="preset-pill" onclick="selectPreset(9.0)">9 ч</button>
       </div>
             <div class="feeling-section">
         <div class="feeling-label">УТРЕННЕЕ САМОЧУВСТВИЕ (+10 XP):</div>
@@ -857,22 +942,18 @@
       </button>
     </div>
 
-    <!-- Легенда плиток в спокойном монохромном стиле -->
-    <div class="legend-card">
-      <div style="display:flex; align-items:center; gap:6px;">
-        <span class="leg-tile" style="background:#18181b; border:1.5px dashed #38bdf8;"></span>
-        <span>Заморозка ❄️</span>
+    <!-- Легенда плиток (цвета как в кнопках бота) -->
+    <div class="legend-card" style="padding: 12px 16px; border-radius: 16px; margin-bottom: 16px;">
+      <div style="font-size: 11px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 8px; font-weight: 600;">
+        Спокойная шкала сна (без штрафных цветов):
       </div>
-      <div style="display:flex; align-items:center; gap:8px;">
-        <span>Меньше</span>
-        <div class="legend-tiles">
-          <span class="leg-tile" style="background:var(--c-short);" title="< 6 ч"></span>
-          <span class="leg-tile" style="background:var(--c-mid);" title="6.0 – 6.9 ч"></span>
-          <span class="leg-tile" style="background:var(--c-good);" title="7.0 – 7.9 ч"></span>
-          <span class="leg-tile" style="background:var(--c-mint);" title="8.0 – 8.9 ч"></span>
-          <span class="leg-tile" style="background:var(--c-light);" title="9+ ч"></span>
-        </div>
-        <span>Больше</span>
+      <div style="display:flex; flex-wrap:wrap; align-items:center; gap:10px; font-size:11px; color:var(--text-muted);">
+        <div style="display:flex; align-items:center; gap:4px;"><span class="leg-tile" style="background:#27273a; border:1px solid #33334d;"></span> <span>&lt;6 ч</span></div>
+        <div style="display:flex; align-items:center; gap:4px;"><span class="leg-tile" style="background:#3e3d6b;"></span> <span>6–7 ч</span></div>
+        <div style="display:flex; align-items:center; gap:4px;"><span class="leg-tile" style="background:#5d5cb2;"></span> <span>7–8 ч</span></div>
+        <div style="display:flex; align-items:center; gap:4px;"><span class="leg-tile" style="background:#818cf8; box-shadow:0 0 4px #818cf8;"></span> <span>8–9 ч ★ Цель</span></div>
+        <div style="display:flex; align-items:center; gap:4px;"><span class="leg-tile" style="background:#6366f1;"></span> <span>&gt;9 ч</span></div>
+        <div style="display:flex; align-items:center; gap:4px;"><span class="leg-tile" style="background:#18181b; border:1.5px dashed #818cf8;"></span> <span>Заморозка ❄️</span></div>
       </div>
     </div>
 
@@ -1185,11 +1266,11 @@
         }
 
         if (hours !== null && !isNaN(hours)) {
-          if (hours < 6.0) tile.className = "tile short";
-          else if (hours < 7.0) tile.className = "tile mid";
-          else if (hours < 8.0) tile.className = "tile good";
-          else if (hours < 9.0) tile.className = "tile mint";
-          else tile.className = "tile light";
+          if (hours < 6.0) tile.className = "tile lvl-1";
+          else if (hours < 7.0) tile.className = "tile lvl-2";
+          else if (hours < 8.0) tile.className = "tile lvl-3";
+          else if (hours <= 9.0) tile.className = "tile lvl-4";
+          else tile.className = "tile lvl-5";
           tile.title = `${dateStr}: ${hours} ч`;
         } else if (frozenDates.has(dateStr)) {
           tile.className = "tile frozen";
@@ -1270,7 +1351,83 @@
       }
     }
 
+    
+    function updateSelfCompAndStages() {
+      // 1. Прогресс относительно себя
+      const today = new Date();
+      let thisWeekZone = 0;
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(today);
+        d.setDate(d.getDate() - i);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        const ds = `${y}-${m}-${day}`;
+        const rec = sleepData[ds];
+        const h = rec ? (typeof rec === "object" ? rec.duration : Number(rec)) : null;
+        if (h && h >= 7.0 && h <= 8.9) thisWeekZone++;
+      }
+
+      let prevWeekZone = 0;
+      for (let i = 7; i < 14; i++) {
+        const d = new Date(today);
+        d.setDate(d.getDate() - i);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        const ds = `${y}-${m}-${day}`;
+        const rec = sleepData[ds];
+        const h = rec ? (typeof rec === "object" ? rec.duration : Number(rec)) : null;
+        if (h && h >= 7.0 && h <= 8.9) prevWeekZone++;
+      }
+
+      const diff = thisWeekZone - prevWeekZone;
+      let compText = "";
+      if (diff > 0) compText = `на ${diff} больше, чем неделю назад`;
+      else if (diff < 0) compText = `на ${Math.abs(diff)} меньше, чем неделю назад`;
+      else compText = `столько же, сколько неделю назад`;
+
+      const compElem = document.getElementById("selfCompText");
+      if (compElem) {
+        compElem.innerText = `За неделю ${thisWeekZone} из 7 ночей в зоне 7–8 ч (${compText})`;
+      }
+
+      // 2. Ступени (21 день -> 30 дней -> 90 дней)
+      let qualifiedNights = 0;
+      for (const k in sleepData) {
+        const rec = sleepData[k];
+        const h = rec ? (typeof rec === "object" ? rec.duration : Number(rec)) : null;
+        if (h && h >= 7.0) qualifiedNights++;
+      }
+
+      const s21 = Math.min(qualifiedNights, 21);
+      const s30 = Math.min(qualifiedNights, 30);
+      const s90 = Math.min(qualifiedNights, 90);
+
+      const el3wText = document.getElementById("stage3wText");
+      const el3wBar = document.getElementById("stage3wBar");
+      if (el3wText && el3wBar) {
+        el3wText.innerText = `${s21} / 21 ночей ${s21 >= 21 ? "✓" : ""}`;
+        el3wBar.style.width = `${(s21 / 21) * 100}%`;
+      }
+
+      const el1mText = document.getElementById("stage1mText");
+      const el1mBar = document.getElementById("stage1mBar");
+      if (el1mText && el1mBar) {
+        el1mText.innerText = `${s30} / 30 ночей ${s30 >= 30 ? "✓" : ""}`;
+        el1mBar.style.width = `${(s30 / 30) * 100}%`;
+      }
+
+      const elQText = document.getElementById("stageQuarterText");
+      const elQBar = document.getElementById("stageQuarterBar");
+      if (elQText && elQBar) {
+        elQText.innerText = `${s90} / 90 ночей ${s90 >= 90 ? "✓" : ""}`;
+        elQBar.style.width = `${(s90 / 90) * 100}%`;
+      }
+    }
+
     function updateStats() {
+      updateSelfCompAndStages();
       updateMascotAndXP();
       const entries = Object.entries(sleepData).filter(([_, v]) => {
         const h = typeof v === "object" ? v.duration : Number(v);
