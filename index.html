@@ -611,6 +611,116 @@
     #toast.show {
       transform: translateX(-50%) translateY(0);
     }
+  
+    /* Персонаж Сплюш и шкала опыта */
+    .mascot-banner {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(6, 182, 212, 0.08));
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      border-radius: 20px;
+      padding: 14px 16px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .mascot-avatar {
+      width: 52px;
+      height: 52px;
+      background: #18181b;
+      border: 1.5px solid var(--c-mint);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      flex-shrink: 0;
+      box-shadow: 0 0 16px rgba(16, 185, 129, 0.25);
+      animation: floatMascot 3s ease-in-out infinite;
+    }
+    @keyframes floatMascot {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-4px); }
+    }
+    .mascot-info {
+      flex: 1;
+    }
+    .mascot-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+    .mascot-name {
+      font-size: 14px;
+      font-weight: 800;
+      color: #fff;
+    }
+    .mascot-lvl {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--c-mint);
+      background: rgba(16, 185, 129, 0.15);
+      padding: 2px 7px;
+      border-radius: 6px;
+    }
+    .mascot-phrase {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.35;
+      margin-bottom: 6px;
+    }
+    .xp-track {
+      width: 100%;
+      height: 6px;
+      background: #27272a;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .xp-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #10b981, #34d399);
+      width: 45%;
+      border-radius: 6px;
+      transition: width 0.4s ease;
+    }
+
+    /* Опрос самочувствия */
+    .feeling-section {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px dashed #27272a;
+    }
+    .feeling-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+    .feeling-pills {
+      display: flex;
+      gap: 6px;
+    }
+    .feeling-pill {
+      flex: 1;
+      background: var(--card-inner);
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      padding: 8px 6px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+    }
+    .feeling-pill.active {
+      background: var(--c-mint);
+      color: #09090b;
+      border-color: var(--c-mint);
+    }
+
   </style>
 </head>
 <body>
@@ -640,6 +750,21 @@
         </div>
       </div>
 
+    </div>
+
+        <!-- Питомец Сплюш и уровень XP -->
+    <div class="mascot-banner">
+      <div class="mascot-avatar" id="mascotAvatar">😴</div>
+      <div class="mascot-info">
+        <div class="mascot-title-row">
+          <span class="mascot-name">Сплюш · <span id="userLevelTitle">Засоня</span></span>
+          <span class="mascot-lvl" id="userLevelBadge">Ур. 1</span>
+        </div>
+        <div class="mascot-phrase" id="mascotPhrase">Сплюш сладко дремлет и ждёт ночных новостей.</div>
+        <div class="xp-track">
+          <div class="xp-bar" id="xpProgressBar" style="width: 30%;"></div>
+        </div>
+      </div>
     </div>
 
     <!-- Основная карточка привычки (HabitKit Style Card) -->
@@ -718,6 +843,15 @@
         <button class="preset-pill" onclick="selectPreset(8.5)">8.5ч</button>
         <button class="preset-pill" onclick="selectPreset(9.0)">9.0ч</button>
       </div>
+            <div class="feeling-section">
+        <div class="feeling-label">УТРЕННЕЕ САМОЧУВСТВИЕ (+10 XP):</div>
+        <div class="feeling-pills">
+          <button class="feeling-pill" id="feelFresh" onclick="selectFeeling('fresh')">⚡ Свежо</button>
+          <button class="feeling-pill" id="feelOk" onclick="selectFeeling('ok')">☕ Раскачиваюсь</button>
+          <button class="feeling-pill" id="feelTired" onclick="selectFeeling('tired')">🪫 Сплю на ходу</button>
+        </div>
+      </div>
+
       <button class="btn-habitkit-save" onclick="saveQuickLog()">
         💾 Сохранить запись
       </button>
@@ -1086,7 +1220,58 @@
       });
     }
 
+    
+    let selectedFeeling = null;
+
+    function selectFeeling(val) {
+      selectedFeeling = val;
+      document.querySelectorAll(".feeling-pill").forEach(p => p.classList.remove("active"));
+      if (val === "fresh") document.getElementById("feelFresh").classList.add("active");
+      if (val === "ok") document.getElementById("feelOk").classList.add("active");
+      if (val === "tired") document.getElementById("feelTired").classList.add("active");
+      triggerHaptic();
+    }
+
+    function updateMascotAndXP() {
+      const entries = Object.values(sleepData).filter(v => v);
+      const totalEntries = entries.length;
+      const xp = totalEntries * 20; // 20 XP per logged night
+      const level = 1 + Math.floor(xp / 100);
+      const xpInCurrentLvl = xp % 100;
+
+      document.getElementById("userLevelBadge").innerText = `Ур. ${level}`;
+      document.getElementById("xpProgressBar").style.width = `${Math.min(100, Math.max(10, xpInCurrentLvl))}%`;
+
+      const titles = ["Засоня", "Хранитель дремоты", "Ловец снов", "Мастер циркадных волн", "Повелитель ночи"];
+      const title = titles[Math.min(titles.length - 1, level - 1)];
+      document.getElementById("userLevelTitle").innerText = title;
+
+      const today = new Date().toISOString().split("T")[0];
+      const todayEntry = sleepData[today];
+      const h = todayEntry ? (typeof todayEntry === "object" ? todayEntry.duration : Number(todayEntry)) : null;
+
+      const avatar = document.getElementById("mascotAvatar");
+      const phrase = document.getElementById("mascotPhrase");
+
+      if (h !== null && !isNaN(h)) {
+        if (h >= 7.5) {
+          avatar.innerText = "✨";
+          phrase.innerText = `Сплюш заряжен на максимум (${h} ч)! Отличный восстановительный сон.`;
+        } else if (h >= 6.0) {
+          avatar.innerText = "☕";
+          phrase.innerText = `Сплюш раскачивается (${h} ч). Сегодня хороший день для спокойного ритма.`;
+        } else {
+          avatar.innerText = "🥱";
+          phrase.innerText = `Короткая ночь (${h} ч). Сплюш укутался в плед и советует не перегружаться.`;
+        }
+      } else {
+        avatar.innerText = "💤";
+        phrase.innerText = "Сплюш готов к новому дню. Зафиксируйте сегодняшнюю ночь!";
+      }
+    }
+
     function updateStats() {
+      updateMascotAndXP();
       const entries = Object.entries(sleepData).filter(([_, v]) => {
         const h = typeof v === "object" ? v.duration : Number(v);
         return h && !isNaN(h) && h > 0;
