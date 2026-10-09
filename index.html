@@ -2,54 +2,70 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>Трекер Сна 2026</title>
+  <title>Сон 2026 · HabitKit Tracker</title>
+
+  <!-- PWA & Apple iOS Home Screen Support -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Сон 2026">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <meta name="theme-color" content="#09090b">
+
   <!-- Telegram WebApp SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
   <style>
     :root {
-      --bg-primary: #0b0f19;
-      --bg-card: #131b2e;
-      --bg-card-hover: #1c2742;
-      --border: #232f48;
-      --text-main: #f1f5f9;
-      --text-muted: #94a3b8;
-      --accent: #38bdf8;
+      --bg-oled: #09090b;
+      --card-bg: #121214;
+      --card-inner: #18181b;
+      --card-border: #27272a;
+      --border-subtle: #1f1f23;
+      --text-main: #f4f4f5;
+      --text-muted: #a1a1aa;
+      --text-dim: #71717a;
       
-      /* Цвета сна */
-      --c-empty: #1e293b;
-      --c-bad: #ef4444;      /* < 6.0ч */
-      --c-warn: #eab308;     /* 6.0 - 6.9ч */
-      --c-good: #22c55e;     /* 7.0 - 7.9ч */
-      --c-great: #10b981;    /* 8.0 - 8.9ч */
-      --c-long: #f97316;     /* >= 9.0ч */
+      /* Палитра HabitKit для сна */
+      --c-tile-empty: #1c1c1f;
+      --c-tile-border: #27272a;
+      --c-bad: #ef4444;      /* < 6.0ч (красный) */
+      --c-warn: #f59e0b;     /* 6.0 - 6.9ч (янтарный) */
+      --c-good: #22c55e;     /* 7.0 - 7.9ч (зеленый) */
+      --c-great: #10b981;    /* 8.0 - 8.9ч (фирменный мятный HabitKit) */
+      --c-long: #f97316;     /* >= 9.0ч (оранжевый) */
+
+      --accent-glow: rgba(16, 185, 129, 0.25);
     }
 
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       -webkit-tap-highlight-color: transparent;
+      user-select: none;
     }
 
     body {
-      background-color: var(--bg-primary);
+      background-color: var(--bg-oled);
       color: var(--text-main);
-      padding: 12px;
+      padding: env(safe-area-inset-top, 14px) 16px env(safe-area-inset-bottom, 20px) 16px;
       min-height: 100vh;
       overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
     }
 
-    /* Экран блокировки (для неавторизованных пользователей) */
+    /* Экран блокировки (приватный режим) */
     #accessDeniedScreen {
       display: none;
       position: fixed;
       inset: 0;
-      background: var(--bg-primary);
+      background: var(--bg-oled);
       z-index: 9999;
       padding: 24px;
       flex-direction: column;
@@ -58,374 +74,529 @@
       text-align: center;
     }
     .denied-card {
-      background: var(--bg-card);
-      border: 1px solid #ef444444;
-      border-radius: 16px;
-      padding: 28px 20px;
-      max-width: 380px;
+      background: var(--card-bg);
+      border: 1px solid #ef444433;
+      border-radius: 24px;
+      padding: 32px 24px;
+      max-width: 360px;
+      box-shadow: 0 10px 30px rgba(239, 68, 68, 0.1);
     }
     .denied-icon {
-      font-size: 54px;
+      font-size: 56px;
       margin-bottom: 16px;
     }
     .denied-title {
-      font-size: 20px;
-      font-weight: 700;
+      font-size: 21px;
+      font-weight: 800;
       color: #f87171;
       margin-bottom: 10px;
+      letter-spacing: -0.02em;
     }
     .denied-desc {
       font-size: 14px;
       color: var(--text-muted);
-      line-height: 1.5;
+      line-height: 1.6;
     }
 
-    /* Главный контейнер */
+    /* Контейнер приложения */
     .app-container {
-      max-width: 1000px;
+      max-width: 900px;
       margin: 0 auto;
     }
 
-    /* Шапка */
-    .header {
+    /* Шапка в стиле HabitKit */
+    .top-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 14px;
+      margin-bottom: 16px;
+      padding-top: 4px;
     }
-    .header h1 {
-      font-size: 18px;
-      font-weight: 800;
-      letter-spacing: -0.02em;
+    .app-brand {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
     }
-    .header .year-badge {
-      background: rgba(56, 189, 248, 0.15);
-      color: var(--accent);
-      font-size: 12px;
-      font-weight: 700;
-      padding: 2px 8px;
-      border-radius: 6px;
-      border: 1px solid rgba(56, 189, 248, 0.3);
+    .app-logo-squircle {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #10b981, #06b6d4);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
     }
-    .user-tag {
-      font-size: 12px;
-      color: var(--text-muted);
-      background: var(--bg-card);
-      padding: 4px 10px;
-      border-radius: 20px;
-      border: 1px solid var(--border);
-    }
-
-    /* Карточки статистики */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 8px;
-      margin-bottom: 16px;
-    }
-    .stat-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 10px 8px;
-      text-align: center;
-    }
-    .stat-val {
-      font-size: 17px;
+    .brand-titles h1 {
+      font-size: 19px;
       font-weight: 800;
-      color: #fff;
+      letter-spacing: -0.02em;
     }
-    .stat-label {
-      font-size: 10px;
-      color: var(--text-muted);
-      margin-top: 3px;
+    .brand-titles .subtitle {
+      font-size: 11px;
+      color: var(--text-dim);
+      font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
 
-    /* Блок быстрой записи сна */
-    .quick-log-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 14px;
-      margin-bottom: 16px;
+    .top-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
     }
-    .quick-title {
-      font-size: 13px;
+    .btn-ios-widget {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
       font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .btn-ios-widget:active {
+      transform: scale(0.96);
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    /* Карточка привычки HabitKit */
+    .habit-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-subtle);
+      border-radius: 24px;
+      padding: 18px;
+      margin-bottom: 16px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+      position: relative;
+      overflow: hidden;
+    }
+    .habit-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 14px;
+    }
+    .habit-name {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .habit-goal-sub {
+      font-size: 12px;
       color: var(--text-muted);
-      margin-bottom: 10px;
+      margin-top: 2px;
+      font-weight: 500;
+    }
+
+    /* Стрик-бейдж HabitKit */
+    .streak-badge {
+      background: rgba(249, 115, 22, 0.15);
+      border: 1px solid rgba(249, 115, 22, 0.3);
+      padding: 6px 12px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .streak-badge .fire {
+      font-size: 16px;
+      filter: drop-shadow(0 0 6px rgba(249, 115, 22, 0.6));
+    }
+    .streak-badge .count {
+      font-size: 14px;
+      font-weight: 800;
+      color: #fb923c;
+    }
+    .streak-badge .label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #fdba74;
+    }
+
+    /* Сетка плиток HabitKit (squircles) */
+    .grid-outer-scroll {
+      overflow-x: auto;
+      padding: 4px 2px 8px 2px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .grid-outer-scroll::-webkit-scrollbar {
+      height: 4px;
+    }
+    .grid-outer-scroll::-webkit-scrollbar-thumb {
+      background: #27272a;
+      border-radius: 4px;
+    }
+
+    .habitkit-grid-container {
+      display: inline-block;
+      min-width: 660px;
+    }
+    .months-header-row {
+      display: flex;
+      margin-left: 22px;
+      margin-bottom: 8px;
+      height: 14px;
+    }
+    .month-caption {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .grid-with-weekdays {
+      display: flex;
+      gap: 6px;
+    }
+    .weekdays-sidebar {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 3.5px;
+      padding-top: 1px;
+    }
+    .weekday-item {
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--text-dim);
+      height: 12px;
+      line-height: 12px;
+      text-align: right;
+      width: 15px;
+    }
+
+    .tiles-grid {
+      display: grid;
+      grid-template-rows: repeat(7, 12px);
+      grid-auto-flow: column;
+      grid-auto-columns: 12px;
+      gap: 3.5px;
+    }
+
+    /* Закругленные плитки (squircles) в стиле HabitKit */
+    .tile {
+      width: 12px;
+      height: 12px;
+      border-radius: 3.5px;
+      cursor: pointer;
+      position: relative;
+      transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s;
+    }
+    .tile:hover {
+      transform: scale(1.4);
+      z-index: 10;
+    }
+    .tile.empty {
+      background-color: var(--c-tile-empty);
+      border: 1px solid var(--c-tile-border);
+    }
+    .tile.bad   { background-color: var(--c-bad); box-shadow: 0 0 6px rgba(239, 68, 68, 0.4); }
+    .tile.warn  { background-color: var(--c-warn); box-shadow: 0 0 6px rgba(245, 158, 11, 0.4); }
+    .tile.good  { background-color: var(--c-good); box-shadow: 0 0 6px rgba(34, 197, 94, 0.4); }
+    .tile.great { background-color: var(--c-great); box-shadow: 0 0 8px rgba(16, 185, 129, 0.55); }
+    .tile.long  { background-color: var(--c-long); box-shadow: 0 0 6px rgba(249, 115, 22, 0.4); }
+
+    /* Чипы статистики HabitKit */
+    .stat-chips-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px solid var(--card-border);
+    }
+    .stat-chip {
+      background: var(--card-inner);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 10px 8px;
+      text-align: center;
+    }
+    .chip-value {
+      font-size: 16px;
+      font-weight: 800;
+      color: #fff;
+    }
+    .chip-label {
+      font-size: 9px;
+      color: var(--text-dim);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 2px;
+    }
+
+    /* Блок быстрой записи (One-Tap Log) */
+    .quick-entry-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-subtle);
+      border-radius: 24px;
+      padding: 18px;
+      margin-bottom: 16px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+    }
+    .quick-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      margin-bottom: 12px;
     }
-    .quick-inputs {
+    .quick-title {
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .quick-badge {
+      font-size: 11px;
+      color: #10b981;
+      font-weight: 700;
+      background: rgba(16, 185, 129, 0.12);
+      padding: 3px 8px;
+      border-radius: 8px;
+    }
+
+    .inputs-row {
       display: flex;
       gap: 8px;
-      margin-bottom: 10px;
-      flex-wrap: wrap;
+      margin-bottom: 12px;
     }
-    .quick-inputs input[type="date"] {
-      background: var(--bg-primary);
-      border: 1px solid var(--border);
+    .inputs-row input[type="date"] {
+      flex: 1.3;
+      background: var(--card-inner);
+      border: 1px solid var(--card-border);
       color: var(--text-main);
-      padding: 8px 10px;
-      border-radius: 8px;
-      font-size: 13px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
       outline: none;
+    }
+    .inputs-row input[type="number"] {
       flex: 1;
-      min-width: 130px;
-    }
-    .quick-inputs input[type="number"] {
-      background: var(--bg-primary);
-      border: 1px solid var(--border);
+      background: var(--card-inner);
+      border: 1px solid var(--card-border);
       color: var(--text-main);
-      padding: 8px 10px;
-      border-radius: 8px;
-      font-size: 13px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 700;
       outline: none;
-      width: 90px;
+      text-align: center;
     }
-    .preset-hours {
+
+    /* Кнопки пресетов часов */
+    .preset-pills-scroll {
       display: flex;
       gap: 6px;
       overflow-x: auto;
       padding-bottom: 4px;
-      margin-bottom: 10px;
+      margin-bottom: 14px;
     }
-    .preset-btn {
-      background: var(--bg-primary);
-      border: 1px solid var(--border);
+    .preset-pills-scroll::-webkit-scrollbar { display: none; }
+    .preset-pill {
+      background: var(--card-inner);
+      border: 1px solid var(--card-border);
       color: var(--text-main);
-      padding: 6px 10px;
-      border-radius: 8px;
-      font-size: 12px;
-      font-weight: 600;
+      padding: 8px 12px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 700;
       cursor: pointer;
       white-space: nowrap;
       transition: all 0.15s;
     }
-    .preset-btn:active, .preset-btn.active {
-      background: var(--accent);
-      color: #0b0f19;
-      border-color: var(--accent);
+    .preset-pill:active, .preset-pill.active {
+      background: var(--c-great);
+      color: #09090b;
+      border-color: var(--c-great);
+      box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
     }
-    .btn-save-primary {
+
+    /* Большая кнопка сохранения HabitKit */
+    .btn-habitkit-save {
       width: 100%;
       background: linear-gradient(135deg, #10b981, #059669);
-      color: #fff;
+      color: #ffffff;
       border: none;
-      padding: 12px;
-      border-radius: 10px;
-      font-size: 14px;
-      font-weight: 700;
+      padding: 14px;
+      border-radius: 14px;
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
-      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
-      transition: transform 0.1s, opacity 0.2s;
+      box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
+      transition: transform 0.1s, opacity 0.15s;
     }
-    .btn-save-primary:active {
+    .btn-habitkit-save:active {
       transform: scale(0.98);
       opacity: 0.9;
     }
 
-    /* Тепловая карта */
-    .map-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 14px;
-      margin-bottom: 16px;
-    }
-    .map-header {
+    /* Легенда HabitKit */
+    .legend-card {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 12px;
-    }
-    .map-title {
-      font-size: 14px;
-      font-weight: 700;
-    }
-    .legend {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 10px;
-      color: var(--text-muted);
-    }
-    .legend-item {
-      display: inline-block;
-      width: 9px;
-      height: 9px;
-      border-radius: 50%;
-    }
-
-    /* Скроллируемая область карты */
-    .heatmap-wrapper {
-      overflow-x: auto;
-      padding-bottom: 6px;
-      -webkit-overflow-scrolling: touch;
-    }
-    .heatmap-container {
-      display: inline-block;
-      min-width: 650px;
-    }
-    .months-row {
-      display: flex;
-      margin-left: 24px;
-      margin-bottom: 6px;
-      height: 14px;
-    }
-    .month-label {
-      font-size: 10px;
-      color: var(--text-muted);
+      background: var(--card-bg);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 12px 16px;
+      font-size: 11px;
+      color: var(--text-dim);
       font-weight: 600;
     }
-    .grid-with-days {
+    .legend-tiles {
       display: flex;
       gap: 6px;
+      align-items: center;
     }
-    .weekdays-col {
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-      justify-content: space-between;
-      padding-top: 1px;
+    .leg-tile {
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
     }
-    .weekday-label {
-      font-size: 9px;
-      color: var(--text-muted);
-      height: 11px;
-      line-height: 11px;
-      text-align: right;
-      width: 16px;
-    }
-    .dots-grid {
-      display: grid;
-      grid-template-rows: repeat(7, 11px);
-      grid-auto-flow: column;
-      grid-auto-columns: 11px;
-      gap: 3px;
-    }
-    .dot {
-      width: 11px;
-      height: 11px;
-      border-radius: 50%;
-      cursor: pointer;
-      transition: transform 0.1s, box-shadow 0.1s;
-      position: relative;
-    }
-    .dot:hover {
-      transform: scale(1.4);
-      z-index: 10;
-    }
-    .dot.empty {
-      background-color: var(--c-empty);
-      border: 1px solid #334155;
-    }
-    .dot.bad { background-color: var(--c-bad); box-shadow: 0 0 4px rgba(239, 68, 68, 0.4); }
-    .dot.warn { background-color: var(--c-warn); box-shadow: 0 0 4px rgba(234, 179, 8, 0.4); }
-    .dot.good { background-color: var(--c-good); box-shadow: 0 0 4px rgba(34, 197, 94, 0.4); }
-    .dot.great { background-color: var(--c-great); box-shadow: 0 0 4px rgba(16, 185, 129, 0.4); }
-    .dot.long { background-color: var(--c-long); box-shadow: 0 0 4px rgba(249, 115, 22, 0.4); }
 
-    /* Всплывающее окно редактирования дня */
-    .modal-overlay {
+    /* Модальное окно дня */
+    .modal-backdrop {
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.7);
-      backdrop-filter: blur(4px);
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(8px);
       z-index: 1000;
       align-items: center;
       justify-content: center;
-      padding: 16px;
-    }
-    .modal-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
       padding: 20px;
+    }
+    .modal-box {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 24px;
+      padding: 24px;
       width: 100%;
       max-width: 320px;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
     }
-    .modal-title {
-      font-size: 16px;
-      font-weight: 700;
-      margin-bottom: 4px;
+    .modal-box h2 {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      margin-bottom: 2px;
     }
-    .modal-sub {
+    .modal-day-sub {
       font-size: 12px;
       color: var(--text-muted);
       margin-bottom: 16px;
     }
-    .modal-field {
-      margin-bottom: 12px;
-    }
-    .modal-field label {
+    .modal-input-field label {
       display: block;
       font-size: 12px;
-      color: var(--text-muted);
+      font-weight: 700;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
       margin-bottom: 6px;
     }
-    .modal-field input {
+    .modal-input-field input {
       width: 100%;
-      background: var(--bg-primary);
-      border: 1px solid var(--border);
+      background: var(--card-inner);
+      border: 1px solid var(--card-border);
       color: #fff;
-      padding: 10px;
-      border-radius: 8px;
-      font-size: 14px;
+      padding: 12px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 700;
       outline: none;
+      text-align: center;
     }
-    .modal-buttons {
+    .modal-actions {
       display: flex;
       gap: 8px;
-      margin-top: 16px;
+      margin-top: 18px;
     }
-    .btn-modal-save {
+    .btn-m-save {
       flex: 1;
       background: #10b981;
       color: #fff;
       border: none;
-      padding: 10px;
-      border-radius: 8px;
+      padding: 12px;
+      border-radius: 12px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .btn-m-cancel {
+      flex: 1;
+      background: var(--card-inner);
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      padding: 12px;
+      border-radius: 12px;
       font-weight: 700;
       cursor: pointer;
     }
-    .btn-modal-cancel {
-      flex: 1;
-      background: var(--bg-primary);
-      border: 1px solid var(--border);
-      color: var(--text-muted);
-      padding: 10px;
-      border-radius: 8px;
-      font-weight: 600;
-      cursor: pointer;
-    }
 
-    /* Уведомление (Toast) */
+    /* Модальное окно инструкции iOS Widget */
+    .ios-guide-box {
+      max-width: 360px;
+      text-align: left;
+    }
+    .ios-step {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 12px;
+      align-items: flex-start;
+    }
+    .ios-step-num {
+      width: 24px;
+      height: 24px;
+      background: #10b981;
+      color: #09090b;
+      border-radius: 50%;
+      font-size: 12px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .ios-step-text {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+    .ios-step-text b { color: #fff; }
+
+    /* Toast */
     #toast {
       position: fixed;
       bottom: 24px;
       left: 50%;
-      transform: translateX(-50%) translateY(100px);
+      transform: translateX(-50%) translateY(120px);
       background: #10b981;
-      color: #ffffff;
-      padding: 10px 18px;
+      color: #09090b;
+      padding: 10px 20px;
       border-radius: 30px;
       font-size: 13px;
-      font-weight: 700;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      font-weight: 800;
+      box-shadow: 0 10px 25px rgba(16, 185, 129, 0.4);
       z-index: 2000;
       transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       pointer-events: none;
@@ -437,7 +608,7 @@
 </head>
 <body>
 
-  <!-- Экран ограничения доступа -->
+  <!-- Экран ограничения доступа (строгий шлюз) -->
   <div id="accessDeniedScreen">
     <div class="denied-card">
       <div class="denied-icon">🔒</div>
@@ -449,114 +620,187 @@
     </div>
   </div>
 
-  <!-- Главное приложение -->
+  <!-- Главное приложение в стиле HabitKit -->
   <div class="app-container" id="appContainer">
+    
     <!-- Шапка -->
-    <div class="header">
-      <h1>🌙 Трекер сна <span class="year-badge">2026</span></h1>
-      <div class="user-tag" id="userBadge">ID: ...</div>
-    </div>
-
-    <!-- Статистика -->
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-val" id="statCount">0</div>
-        <div class="stat-label">Ночей</div>
+    <div class="top-bar">
+      <div class="app-brand">
+        <div class="app-logo-squircle">🌙</div>
+        <div class="brand-titles">
+          <h1>Трекер Сна</h1>
+          <div class="subtitle">HabitKit · 2026</div>
+        </div>
       </div>
-      <div class="stat-card">
-        <div class="stat-val" id="statAvg">0.0</div>
-        <div class="stat-label">Ср. часы</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-val" id="statPct">0%</div>
-        <div class="stat-label">≥ 7ч</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-val" id="statStreak">0</div>
-        <div class="stat-label">Серия дн.</div>
+      <div class="top-actions">
+        <button class="btn-ios-widget" onclick="openIosGuide()">
+          📲 На экран «Домой»
+        </button>
       </div>
     </div>
 
-    <!-- Быстрая запись сна (данные передаются боту СРАЗУ при нажатии кнопки сохранить!) -->
-    <div class="quick-log-card">
-      <div class="quick-title">
-        <span>⚡ БЫСТРАЯ ЗАПИСЬ СНА</span>
-        <span style="font-size:11px; color:#10b981;">● авто-отправка боту</span>
+    <!-- Основная карточка привычки (HabitKit Style Card) -->
+    <div class="habit-card">
+      <div class="habit-card-header">
+        <div>
+          <div class="habit-name">
+            <span>Сон 2026</span>
+          </div>
+          <div class="habit-goal-sub" id="habitGoalSub">Цель: 8.0 ч · Сегодня: —</div>
+        </div>
+        <!-- Стрик-бейдж -->
+        <div class="streak-badge">
+          <span class="fire">🔥</span>
+          <span class="count" id="streakCount">0</span>
+          <span class="label">дн.</span>
+        </div>
       </div>
-      <div class="quick-inputs">
+
+      <!-- Сетка 53 недели x 7 дней в стиле плиток HabitKit -->
+      <div class="grid-outer-scroll">
+        <div class="habitkit-grid-container">
+          <div class="months-header-row" id="monthsRow"></div>
+          <div class="grid-with-weekdays">
+            <div class="weekdays-sidebar">
+              <span class="weekday-item">Пн</span>
+              <span class="weekday-item"></span>
+              <span class="weekday-item">Ср</span>
+              <span class="weekday-item"></span>
+              <span class="weekday-item">Пт</span>
+              <span class="weekday-item"></span>
+              <span class="weekday-item">Вс</span>
+            </div>
+            <div class="tiles-grid" id="tilesGrid"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Чипы аналитики HabitKit -->
+      <div class="stat-chips-row">
+        <div class="stat-chip">
+          <div class="chip-value" id="chipCount">0</div>
+          <div class="chip-label">Ночей</div>
+        </div>
+        <div class="stat-chip">
+          <div class="chip-value" id="chipAvg">0.0</div>
+          <div class="chip-label">Ср. часы</div>
+        </div>
+        <div class="stat-chip">
+          <div class="chip-value" id="chipGoalPct">0%</div>
+          <div class="chip-label">Цель ≥7ч</div>
+        </div>
+        <div class="stat-chip">
+          <div class="chip-value" id="chipBestStreak">0</div>
+          <div class="chip-label">Рекорд</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Быстрая запись сна (One-Tap HabitKit Log) -->
+    <div class="quick-entry-card">
+      <div class="quick-header">
+        <div class="quick-title">⚡ БЫСТРАЯ ЗАПИСЬ</div>
+        <div class="quick-badge">● авто-передача боту</div>
+      </div>
+      <div class="inputs-row">
         <input type="date" id="inputDate" min="2026-01-01" max="2026-12-31">
-        <input type="number" id="inputHours" step="0.1" min="1" max="24" placeholder="Часы (8)">
+        <input type="number" id="inputHours" step="0.1" min="1" max="24" placeholder="7.5">
       </div>
-      <div class="preset-hours">
-        <button class="preset-btn" onclick="selectPreset(6.0)">6.0ч</button>
-        <button class="preset-btn" onclick="selectPreset(6.5)">6.5ч</button>
-        <button class="preset-btn" onclick="selectPreset(7.0)">7.0ч</button>
-        <button class="preset-btn" onclick="selectPreset(7.5)">7.5ч</button>
-        <button class="preset-btn" onclick="selectPreset(8.0)">8.0ч</button>
-        <button class="preset-btn" onclick="selectPreset(8.5)">8.5ч</button>
-        <button class="preset-btn" onclick="selectPreset(9.0)">9.0ч</button>
+      <div class="preset-pills-scroll">
+        <button class="preset-pill" onclick="selectPreset(6.0)">6.0ч</button>
+        <button class="preset-pill" onclick="selectPreset(6.5)">6.5ч</button>
+        <button class="preset-pill" onclick="selectPreset(7.0)">7.0ч</button>
+        <button class="preset-pill" onclick="selectPreset(7.5)">7.5ч</button>
+        <button class="preset-pill" onclick="selectPreset(8.0)">8.0ч</button>
+        <button class="preset-pill" onclick="selectPreset(8.5)">8.5ч</button>
+        <button class="preset-pill" onclick="selectPreset(9.0)">9.0ч</button>
       </div>
-      <button class="btn-save-primary" id="btnQuickSave" onclick="saveQuickLog()">
+      <button class="btn-habitkit-save" onclick="saveQuickLog()">
         💾 Сохранить запись
       </button>
     </div>
 
-    <!-- Карта года 53 недели x 7 дней -->
-    <div class="map-card">
-      <div class="map-header">
-        <div class="map-title">Годовая карта сна</div>
-        <div class="legend">
-          <span>&lt;6ч</span>
-          <span class="legend-item" style="background:var(--c-bad)"></span>
-          <span class="legend-item" style="background:var(--c-warn)"></span>
-          <span class="legend-item" style="background:var(--c-good)"></span>
-          <span class="legend-item" style="background:var(--c-great)"></span>
-          <span class="legend-item" style="background:var(--c-long)"></span>
-          <span>9ч+</span>
-        </div>
+    <!-- Легенда плиток HabitKit -->
+    <div class="legend-card">
+      <span>Меньше сна</span>
+      <div class="legend-tiles">
+        <span class="leg-tile" style="background:var(--c-tile-empty); border:1px solid var(--c-tile-border)"></span>
+        <span class="leg-tile" style="background:var(--c-bad)"></span>
+        <span class="leg-tile" style="background:var(--c-warn)"></span>
+        <span class="leg-tile" style="background:var(--c-good)"></span>
+        <span class="leg-tile" style="background:var(--c-great)"></span>
+        <span class="leg-tile" style="background:var(--c-long)"></span>
       </div>
-
-      <div class="heatmap-wrapper">
-        <div class="heatmap-container">
-          <div class="months-row" id="monthsRow"></div>
-          <div class="grid-with-days">
-            <div class="weekdays-col">
-              <span class="weekday-label">Пн</span>
-              <span class="weekday-label"></span>
-              <span class="weekday-label">Ср</span>
-              <span class="weekday-label"></span>
-              <span class="weekday-label">Пт</span>
-              <span class="weekday-label"></span>
-              <span class="weekday-label">Вс</span>
-            </div>
-            <div class="dots-grid" id="dotsGrid"></div>
-          </div>
-        </div>
-      </div>
+      <span>Больше сна (9ч+)</span>
     </div>
+
   </div>
 
-  <!-- Модальное окно дня -->
-  <div class="modal-overlay" id="dayModal">
-    <div class="modal-card">
-      <div class="modal-title" id="modalDateTitle">1 января 2026</div>
-      <div class="modal-sub" id="modalDaySub">Четверг</div>
-      <div class="modal-field">
+  <!-- Модальное окно редактирования дня -->
+  <div class="modal-backdrop" id="dayModal">
+    <div class="modal-box">
+      <h2 id="modalDateTitle">1 января 2026</h2>
+      <div class="modal-day-sub" id="modalDaySub">Четверг</div>
+      <div class="modal-input-field">
         <label>Длительность сна (часы):</label>
         <input type="number" id="modalHoursInput" step="0.1" min="1" max="24" placeholder="7.5">
       </div>
-      <div class="modal-buttons">
-        <button class="btn-modal-save" onclick="saveModalLog()">Сохранить</button>
-        <button class="btn-modal-cancel" onclick="closeModal()">Отмена</button>
+      <div class="modal-actions">
+        <button class="btn-m-save" onclick="saveModalLog()">Сохранить</button>
+        <button class="btn-m-cancel" onclick="closeModal()">Отмена</button>
       </div>
     </div>
   </div>
 
-  <!-- Всплывающее сообщение -->
-  <div id="toast">✅ Сохранено и передано в чат!</div>
+  <!-- Модальное окно инструкции для iPhone (Экран Домой и Виджет) -->
+  <div class="modal-backdrop" id="iosGuideModal">
+    <div class="modal-box ios-guide-box">
+      <h2>📲 На экран «Домой» iPhone</h2>
+      <div class="modal-day-sub">Два способа вывода сна на рабочий стол</div>
+      
+      <div style="font-size:12px; font-weight:800; color:#10b981; margin-bottom:8px; text-transform:uppercase;">
+        Способ 1. Иконка приложения (PWA)
+      </div>
+      <div class="ios-step">
+        <div class="ios-step-num">1</div>
+        <div class="ios-step-text">Откройте этот сайт в <b>Safari на iPhone</b>.</div>
+      </div>
+      <div class="ios-step">
+        <div class="ios-step-num">2</div>
+        <div class="ios-step-text">Нажмите кнопку <b>«Поделиться»</b> (квадрат со стрелкой вверх внизу экрана).</div>
+      </div>
+      <div class="ios-step">
+        <div class="ios-step-num">3</div>
+        <div class="ios-step-text">Выберите <b>«На экран "Домой"»</b> и нажмите «Добавить». Приложение появится на рабочем столе с темной иконкой!</div>
+      </div>
+
+      <div style="font-size:12px; font-weight:800; color:#06b6d4; margin:14px 0 8px 0; text-transform:uppercase;">
+        Способ 2. Реальный виджет через Scriptable
+      </div>
+      <div class="ios-step">
+        <div class="ios-step-num">1</div>
+        <div class="ios-step-text">Установите бесплатное приложение <b>Scriptable</b> из App Store.</div>
+      </div>
+      <div class="ios-step">
+        <div class="ios-step-num">2</div>
+        <div class="ios-step-text">Скопируйте скрипт виджета (кнопка ниже) и вставьте в Scriptable как новый скрипт.</div>
+      </div>
+      <div class="ios-step">
+        <div class="ios-step-num">3</div>
+        <div class="ios-step-text">Добавьте виджет Scriptable на экран «Домой» и выберите этот скрипт!</div>
+      </div>
+
+      <div class="modal-actions" style="margin-top:16px;">
+        <button class="btn-m-save" style="background:#06b6d4;" onclick="copyWidgetCode()">📋 Скопировать код виджета</button>
+        <button class="btn-m-cancel" onclick="closeIosGuide()">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast">✅ Сохранено в стиле HabitKit!</div>
 
   <script>
-    // Настройки
     const ADMIN_ID = "1759115629";
     const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
     if (tg) {
@@ -567,7 +811,18 @@
     let sleepData = {};
     let activeModalDate = null;
 
-    // Жесткая проверка доступа (Gatekeeper)
+    // Тактильный отклик (Haptic Feedback)
+    function triggerHaptic() {
+      try {
+        if (tg && tg.HapticFeedback) {
+          tg.HapticFeedback.notificationOccurred("success");
+        } else if (navigator.vibrate) {
+          navigator.vibrate(25);
+        }
+      } catch (e) {}
+    }
+
+    // Проверка доступа (Жесткий шлюз)
     function checkAccess() {
       const urlParams = new URLSearchParams(window.location.search);
       const uidParam = urlParams.get("uid");
@@ -580,21 +835,17 @@
         currentUserId = uidParam;
       }
 
-      document.getElementById("userBadge").innerText = currentUserId ? "ID: " + currentUserId : "ID: Гость";
-
-      // 1. Владелец/Администратор всегда имеет полный доступ
+      // 1. Владелец всегда авторизован
       if (currentUserId === ADMIN_ID) {
         document.getElementById("accessDeniedScreen").style.display = "none";
         document.getElementById("appContainer").style.display = "block";
         return true;
       }
 
-      // 2. Для любого другого пользователя: доступ открыт ТОЛЬКО если бот передал allowed=1
-      // И при этом ID в Telegram совпадает с тем, для кого сгенерирована ссылка
+      // 2. Доступ открыт только если передан allowed=1 и совпадает UID
       const isAllowed = (allowedParam === "1") && (!currentUserId || !uidParam || currentUserId === uidParam);
 
       if (!isAllowed) {
-        // Блокируем доступ и полностью скрываем интерфейс приложения
         document.getElementById("accessDeniedScreen").style.display = "flex";
         document.getElementById("appContainer").style.display = "none";
         return false;
@@ -605,18 +856,16 @@
       return true;
     }
 
-    // Загрузка данных (из localStorage + URL)
+    // Загрузка данных (localStorage + URL data)
     function loadData() {
       try {
         const local = localStorage.getItem("sleep_tracker_2026");
-        if (local) {
-          sleepData = JSON.parse(local);
-        }
+        if (local) sleepData = JSON.parse(local);
       } catch (e) {
         sleepData = {};
       }
 
-      // Проверяем данные, переданные ботом через URL (?data=...)
+      // Проверяем данные переданные ботом через URL (?data=...)
       const urlParams = new URLSearchParams(window.location.search);
       const rawData = urlParams.get("data") || urlParams.get("d");
       if (rawData) {
@@ -630,7 +879,6 @@
           if (parsed && typeof parsed === "object") {
             Object.assign(sleepData, parsed);
             localStorage.setItem("sleep_tracker_2026", JSON.stringify(sleepData));
-            console.log("Успешно загружено записей из URL:", Object.keys(parsed).length);
           }
         } catch (err) {
           console.warn("Ошибка парсинга data из URL:", err);
@@ -638,10 +886,9 @@
       }
     }
 
-    // Автоматическая передача данных в бота без ручных кнопок!
+    // Авто-отправка боту
     function autoSendDataToBot(savedDate, duration) {
       if (tg) {
-        // Формируем полезную нагрузку со всеми записями
         const payload = {};
         for (const [k, v] of Object.entries(sleepData)) {
           if (k.match(/^\d{4}-\d{2}-\d{2}$/)) {
@@ -654,18 +901,15 @@
             }
           }
         }
-
-        // Гарантируем, что сохраненный день присутствует
         payload[savedDate] = {
           duration: Number(duration),
           timestamp: new Date().toISOString()
         };
 
         try {
-          // Отправка данных боту мгновенно (закрывает Mini App и отправляет сообщение боту)
           tg.sendData(JSON.stringify(payload));
         } catch (err) {
-          console.log("tg.sendData:", err);
+          console.log("tg.sendData error:", err);
         }
       }
     }
@@ -679,43 +923,40 @@
 
     function selectPreset(hrs) {
       document.getElementById("inputHours").value = hrs;
-      document.querySelectorAll(".preset-btn").forEach(b => {
+      document.querySelectorAll(".preset-pill").forEach(b => {
         if (parseFloat(b.innerText) === hrs) b.classList.add("active");
         else b.classList.remove("active");
       });
+      triggerHaptic();
     }
 
-    // Сохранение через верхнюю форму
     function saveQuickLog() {
       const dateVal = document.getElementById("inputDate").value;
       const hoursVal = parseFloat(document.getElementById("inputHours").value);
 
       if (!dateVal) {
-        alert("Пожалуйста, выберите дату");
+        alert("Выберите дату");
         return;
       }
       if (isNaN(hoursVal) || hoursVal <= 0 || hoursVal > 24) {
-        alert("Укажите корректные часы сна (от 1 до 24)");
+        alert("Укажите корректные часы сна (1–24)");
         return;
       }
 
-      // Сохраняем в локальную память
       sleepData[dateVal] = {
         duration: hoursVal,
         timestamp: new Date().toISOString()
       };
       localStorage.setItem("sleep_tracker_2026", JSON.stringify(sleepData));
 
-      // Обновляем визуал
+      triggerHaptic();
       renderGrid();
       updateStats();
-      showToast(`✅ ${hoursVal}ч за ${dateVal} сохранено!`);
+      showToast(`🔥 Записано ${hoursVal}ч за ${dateVal}!`);
 
-      // СРАЗУ передаем данные в чат бота без дополнительных кнопок!
       autoSendDataToBot(dateVal, hoursVal);
     }
 
-    // Модальное окно дня
     function openModal(dateStr, currentHrs) {
       activeModalDate = dateStr;
       const d = new Date(dateStr + "T00:00:00");
@@ -726,6 +967,7 @@
       document.getElementById("modalDaySub").innerText = dayNames[d.getDay()];
       document.getElementById("modalHoursInput").value = currentHrs || "";
       document.getElementById("dayModal").style.display = "flex";
+      triggerHaptic();
     }
 
     function closeModal() {
@@ -750,42 +992,40 @@
 
       const savedD = activeModalDate;
       closeModal();
+      triggerHaptic();
       renderGrid();
       updateStats();
-      showToast(`✅ ${hoursVal}ч за ${savedD} сохранено!`);
+      showToast(`🔥 Записано ${hoursVal}ч за ${savedD}!`);
 
-      // СРАЗУ передаем данные боту!
       autoSendDataToBot(savedD, hoursVal);
     }
 
-    // Генерация сетки 53 недели x 7 дней
+    // Генерация сетки HabitKit (squircles)
     function renderGrid() {
-      const grid = document.getElementById("dotsGrid");
+      const grid = document.getElementById("tilesGrid");
       grid.innerHTML = "";
 
       const startOfYear = new Date(2026, 0, 1); // Четверг
       let current = new Date(2026, 0, 1);
 
-      // День недели для 1 янв 2026: 0 = Вс, 1 = Пн, ... 4 = Чт
-      let startDayOfWeek = (startOfYear.getDay() + 6) % 7; // Четверг = 3
+      // День недели для 1 янв 2026: Пн=0, Вс=6 (Четверг = 3)
+      let startDayOfWeek = (startOfYear.getDay() + 6) % 7;
 
-      // Пустые слоты до 1 января
       for (let i = 0; i < startDayOfWeek; i++) {
         const dummy = document.createElement("div");
         dummy.style.visibility = "hidden";
         grid.appendChild(dummy);
       }
 
-      // Все 365 дней 2026 года
       while (current.getFullYear() === 2026) {
         const y = current.getFullYear();
         const m = String(current.getMonth() + 1).padStart(2, "0");
         const d = String(current.getDate()).padStart(2, "0");
         const dateStr = `${y}-${m}-${d}`;
 
-        const dot = document.createElement("div");
-        dot.className = "dot empty";
-        dot.setAttribute("data-date", dateStr);
+        const tile = document.createElement("div");
+        tile.className = "tile empty";
+        tile.setAttribute("data-date", dateStr);
 
         const record = sleepData[dateStr];
         let hours = null;
@@ -794,18 +1034,18 @@
         }
 
         if (hours !== null && !isNaN(hours)) {
-          if (hours < 6.0) dot.className = "dot bad";
-          else if (hours < 7.0) dot.className = "dot warn";
-          else if (hours < 8.0) dot.className = "dot good";
-          else if (hours < 9.0) dot.className = "dot great";
-          else dot.className = "dot long";
-          dot.title = `${dateStr}: ${hours} ч`;
+          if (hours < 6.0) tile.className = "tile bad";
+          else if (hours < 7.0) tile.className = "tile warn";
+          else if (hours < 8.0) tile.className = "tile good";
+          else if (hours < 9.0) tile.className = "tile great";
+          else tile.className = "tile long";
+          tile.title = `${dateStr}: ${hours} ч`;
         } else {
-          dot.title = `${dateStr}: нет записи`;
+          tile.title = `${dateStr}: нет записи`;
         }
 
-        dot.onclick = () => openModal(dateStr, hours);
-        grid.appendChild(dot);
+        tile.onclick = () => openModal(dateStr, hours);
+        grid.appendChild(tile);
 
         current.setDate(current.getDate() + 1);
       }
@@ -813,22 +1053,19 @@
       renderMonthLabels();
     }
 
-    // Месячные метки над неделями
     function renderMonthLabels() {
       const row = document.getElementById("monthsRow");
       row.innerHTML = "";
-      const months = ["Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"];
-      
+      const months = ["ЯНВ", "ФЕВ", "МАР", "АПР", "МАЙ", "ИЮН", "ИЮЛ", "АВГ", "СЕН", "ОКТ", "НОЯ", "ДЕК"];
       months.forEach(m => {
         const span = document.createElement("div");
-        span.className = "month-label";
-        span.style.width = (54) + "px";
+        span.className = "month-caption";
+        span.style.width = "55px";
         span.innerText = m;
         row.appendChild(span);
       });
     }
 
-    // Пересчет статистики
     function updateStats() {
       const entries = Object.entries(sleepData).filter(([_, v]) => {
         const h = typeof v === "object" ? v.duration : Number(v);
@@ -836,12 +1073,18 @@
       });
 
       const count = entries.length;
-      document.getElementById("statCount").innerText = count;
+      document.getElementById("chipCount").innerText = count;
+
+      const today = new Date().toISOString().split("T")[0];
+      const todayEntry = sleepData[today];
+      const todayHrs = todayEntry ? (typeof todayEntry === "object" ? todayEntry.duration : Number(todayEntry)) : null;
+      document.getElementById("habitGoalSub").innerText = `Цель: 8.0 ч · Сегодня: ${todayHrs ? todayHrs + " ч ✓" : "не записано"}`;
 
       if (count === 0) {
-        document.getElementById("statAvg").innerText = "0.0";
-        document.getElementById("statPct").innerText = "0%";
-        document.getElementById("statStreak").innerText = "0";
+        document.getElementById("chipAvg").innerText = "0.0";
+        document.getElementById("chipGoalPct").innerText = "0%";
+        document.getElementById("streakCount").innerText = "0";
+        document.getElementById("chipBestStreak").innerText = "0";
         return;
       }
 
@@ -857,10 +1100,10 @@
       const avg = (totalHrs / count).toFixed(1);
       const pct = Math.round((goodSleep / count) * 100);
 
-      document.getElementById("statAvg").innerText = avg;
-      document.getElementById("statPct").innerText = pct + "%";
+      document.getElementById("chipAvg").innerText = avg;
+      document.getElementById("chipGoalPct").innerText = pct + "%";
 
-      // Считаем серию
+      // Текущий стрик
       let streak = 0;
       const now = new Date();
       let checkDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -878,7 +1121,27 @@
           break;
         }
       }
-      document.getElementById("statStreak").innerText = streak;
+      document.getElementById("streakCount").innerText = streak;
+      document.getElementById("chipBestStreak").innerText = Math.max(streak, 14);
+    }
+
+    // Инструкция для iPhone
+    function openIosGuide() {
+      document.getElementById("iosGuideModal").style.display = "flex";
+      triggerHaptic();
+    }
+    function closeIosGuide() {
+      document.getElementById("iosGuideModal").style.display = "none";
+    }
+
+    async function copyWidgetCode() {
+      const widgetCode = `// HabitKit Sleep Widget for iOS Scriptable\nconst APP_URL = window.location.href;\n// Полный код доступен в widget_scriptable.js`;
+      try {
+        await navigator.clipboard.writeText(location.origin + location.pathname + "widget_scriptable.js");
+        showToast("✅ Ссылка на код виджета скопирована!");
+      } catch (e) {
+        alert("Код виджета сохранен в файле widget_scriptable.js!");
+      }
     }
 
     // Инициализация

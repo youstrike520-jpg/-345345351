@@ -1,0 +1,17 @@
+{
+  "name": "Трекер Сна 2026",
+  "short_name": "Сон 2026",
+  "description": "Приватный трекер сна в стиле HabitKit",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#09090b",
+  "icons": [
+    {
+      "src": "apple-touch-icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
