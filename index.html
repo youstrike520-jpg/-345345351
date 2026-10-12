@@ -773,10 +773,15 @@
           <div class="mascot-sub" id="mascotPhrase">Ждёт ночных новостей</div>
         </div>
       </div>
-      <!-- Серия: при 0 «Начните серию», огонёк только от 3 дней -->
-      <div class="streak-pill" id="streakBadge">
-        <span class="streak-icon" id="streakIcon">🌱</span>
-        <span class="streak-text" id="streakText">Начните серию</span>
+      <!-- Кнопка быстрой синхронизации + Серия -->
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <button id="syncBtn" onclick="syncDataWithBot()" title="Передать данные в Telegram-бот" style="background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.35); color: #86efac; border-radius: 999px; padding: 4px 10px; font-size: 11px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+          <span>🔄</span> <span>В бот</span>
+        </button>
+        <div class="streak-pill" id="streakBadge">
+          <span class="streak-icon" id="streakIcon">🌱</span>
+          <span class="streak-text" id="streakText">Начните серию</span>
+        </div>
       </div>
     </header>
     <div class="xp-track-mini">
@@ -960,7 +965,8 @@
         <input type="number" id="modalHoursInput" step="0.1" min="1" max="24" placeholder="8.0">
       </div>
       <div class="modal-actions">
-        <button class="btn-m-save" onclick="saveModalLog()">Сохранить</button>
+        <button class="btn-m-save" onclick="saveModalLog(false)">Сохранить</button>
+        <button class="btn-m-save" style="background:#10b981; color:#fff;" onclick="saveModalLog(true)">💾 В бот</button>
         <button class="btn-m-cancel" onclick="closeModal()">Отмена</button>
       </div>
     </div>
@@ -979,7 +985,21 @@
 
     let sleepData = {};
 
-        function getSleepColorClass(hours) {
+    function formatLocalDate(d) {
+      if (!d) return "";
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    }
+
+    function parseLocalDate(str) {
+      if (!str) return new Date();
+      const parts = str.split("-");
+      return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), 12, 0, 0);
+    }
+
+    function getSleepColorClass(hours) {
       if (hours === null || isNaN(hours) || hours <= 0) return "cell-empty";
       if (hours < 6.0) return "bad";      // 🔴 < 6 ч
       if (hours < 7.0) return "warn";     // 🟡 6.0–6.9
@@ -1035,7 +1055,7 @@
       return true;
     }
 
-    // Загрузка данных
+    // Загрузка и синхронизация данных
     function loadData() {
       try {
         const local = localStorage.getItem("sleep_tracker_2026");
@@ -1056,13 +1076,27 @@
           }
           if (parsed && typeof parsed === "object") {
             for (const [k, v] of Object.entries(parsed)) {
-              if (typeof v === "object" && v !== null) {
-                sleepData[k] = {
-                  duration: Number(v.d !== undefined ? v.d : v.duration),
-                  mood: v.m || v.mood || ""
-                };
+              let dur = 0;
+              let mood = "";
+              let ts = "";
+              if (v && typeof v === "object") {
+                dur = Number(v.d !== undefined ? v.d : v.duration);
+                mood = v.m || v.mood || "";
+                ts = v.ts || v.timestamp || "";
               } else {
-                sleepData[k] = { duration: Number(v) };
+                dur = Number(v);
+              }
+
+              if (!isNaN(dur) && dur > 0) {
+                const existing = sleepData[k];
+                // Если записи не было или из бота пришли актуальные/более свежие данные
+                if (!existing || !existing.timestamp || !ts || ts >= (existing.timestamp || "")) {
+                  sleepData[k] = {
+                    duration: dur,
+                    mood: mood,
+                    timestamp: ts || new Date().toISOString()
+                  };
+                }
               }
             }
             localStorage.setItem("sleep_tracker_2026", JSON.stringify(sleepData));
@@ -1077,6 +1111,32 @@
         try {
           const arr = JSON.parse(decodeURIComponent(rawFrozen));
           if (Array.isArray(arr)) frozenDates = new Set(arr);
+        } catch (e) {}
+      }
+    }
+
+    // Двусторонняя синхронизация с Telegram-ботом
+    function syncDataWithBot() {
+      triggerHaptic();
+      if (tg) {
+        try {
+          const payload = JSON.stringify(sleepData);
+          tg.sendData(payload);
+          return;
+        } catch (e) {
+          console.warn("tg.sendData:", e);
+        }
+      }
+      showToast("✓ Данные сохранены в приложении");
+    }
+
+    function updateTelegramMainButton() {
+      if (tg && tg.MainButton) {
+        try {
+          tg.MainButton.setText("💾 Сохранить изменения в бот").show();
+          tg.MainButton.onClick(() => {
+            syncDataWithBot();
+          });
         } catch (e) {}
       }
     }
@@ -1119,7 +1179,7 @@
       triggerHaptic();
       renderAll();
       showToast(`Записал: ${hoursVal} ч ✓\n+10 XP · серия сохранена`);
-      // autoSendDataToBot отключен: остаемся внутри Mini App без выброса в чат
+      updateTelegramMainButton();
     }
 
     function openModal(dateStr, currentHrs) {
@@ -1140,7 +1200,7 @@
       activeModalDate = null;
     }
 
-    function saveModalLog() {
+    function saveModalLog(sendToBot = false) {
       if (!activeModalDate) return;
       const hoursVal = parseFloat(document.getElementById("modalHoursInput").value);
 
@@ -1155,15 +1215,19 @@
       };
       localStorage.setItem("sleep_tracker_2026", JSON.stringify(sleepData));
 
-      const savedD = activeModalDate;
       closeModal();
       triggerHaptic();
       renderAll();
       showToast(`Записал: ${hoursVal} ч ✓\n+10 XP · серия сохранена`);
-      // autoSendDataToBot отключен: остаемся внутри Mini App без выброса в чат
+
+      if (sendToBot) {
+        syncDataWithBot();
+      } else {
+        updateTelegramMainButton();
+      }
     }
 
-    // Расчет стрика: при 0 «Начните серию», огонёк только от 3 дней
+    // Расчет стрика: синхронизирован с Telegram-ботом
     function calculateSoftStreakData() {
       const dates = Object.keys(sleepData).filter(d => {
         const val = sleepData[d];
@@ -1177,13 +1241,13 @@
       let tempStreak = 0;
       let bestStreak = 0;
 
-      const start = new Date(dates[0] + "T00:00:00");
-      const end = new Date(dates[dates.length - 1] + "T00:00:00");
+      const start = parseLocalDate(dates[0]);
+      const end = parseLocalDate(dates[dates.length - 1]);
       let cur = new Date(start);
       let dayIdx = 0;
 
       while (cur <= end) {
-        const ds = cur.toISOString().split("T")[0];
+        const ds = formatLocalDate(cur);
         if (sleepData[ds]) {
           tempStreak++;
           if (tempStreak > bestStreak) bestStreak = tempStreak;
@@ -1201,10 +1265,21 @@
         dayIdx++;
       }
 
+      const today = new Date();
+      const todayStr = formatLocalDate(today);
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = formatLocalDate(yesterday);
+
+      // Проверяем непрерывность с сегодняшнего или вчерашнего дня
+      let check = new Date(today);
+      if (!sleepData[todayStr] && !frozenDates.has(todayStr)) {
+        check = new Date(yesterday);
+      }
+
       let activeStreak = 0;
-      let check = new Date(end);
       while (true) {
-        const ds = check.toISOString().split("T")[0];
+        const ds = formatLocalDate(check);
         if (sleepData[ds] || frozenDates.has(ds)) {
           activeStreak++;
           check.setDate(check.getDate() - 1);
@@ -1328,7 +1403,7 @@
       }
 
       let cur = new Date(startDate);
-      const todayISO = today.toISOString().split("T")[0];
+      const todayISO = formatLocalDate(today);
 
       for (let i = 0; i < 28; i++) {
         const y = cur.getFullYear();
@@ -1392,7 +1467,7 @@
       }
 
       const today = new Date();
-      const todayISO = today.toISOString().split("T")[0];
+      const todayISO = formatLocalDate(today);
 
       while (current.getFullYear() === 2026) {
         const y = current.getFullYear();
@@ -1499,7 +1574,7 @@
       for (let i = 0; i < 7; i++) {
         const d = new Date(today);
         d.setDate(d.getDate() - i);
-        const ds = d.toISOString().split("T")[0];
+        const ds = formatLocalDate(d);
         const rec = sleepData[ds];
         const h = rec ? (typeof rec === "object" ? rec.duration : Number(rec)) : null;
         if (h && h >= 7.0 && h <= 8.9) thisWeekZone++;
@@ -1509,7 +1584,7 @@
       for (let i = 7; i < 14; i++) {
         const d = new Date(today);
         d.setDate(d.getDate() - i);
-        const ds = d.toISOString().split("T")[0];
+        const ds = formatLocalDate(d);
         const rec = sleepData[ds];
         const h = rec ? (typeof rec === "object" ? rec.duration : Number(rec)) : null;
         if (h && h >= 7.0 && h <= 8.9) prevWeekZone++;
@@ -1584,7 +1659,7 @@
       }
 
       // Маскот настроение
-      const todayISO = new Date().toISOString().split("T")[0];
+      const todayISO = formatLocalDate(new Date());
       const todayRec = sleepData[todayISO];
       const h = todayRec ? (typeof todayRec === "object" ? todayRec.duration : Number(todayRec)) : null;
 
@@ -1656,7 +1731,7 @@
       if (!checkAccess()) return;
       loadData();
       
-      const todayISO = new Date().toISOString().split("T")[0];
+      const todayISO = formatLocalDate(new Date());
       const dateInp = document.getElementById("inputDate");
       if (dateInp) dateInp.value = todayISO;
 
