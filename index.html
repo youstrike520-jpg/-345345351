@@ -1232,22 +1232,26 @@
       const hours = rec ? (typeof rec === "object" ? rec.duration : Number(rec)) : null;
 
       if (hours !== null && !isNaN(hours) && hours > 0) {
-        let badgeClass = "badge-mid";
-        let colorClass = "color-mid";
-        let badgeText = "Почти цель";
-        let goalStatusText = "";
-
-        const qCls = getSleepColorClass(hours);
-        let badgeColor = "#256BB0";
-        let badgeText = "Отличный сон";
-        if (qCls === "q1" || qCls === "q2") { badgeColor = "#B83A48"; badgeText = "Мало сна"; }
-        else if (qCls === "q3" || qCls === "q4") { badgeColor = "#E98A45"; badgeText = "Ниже нормы"; }
-        else if (qCls === "q5") { badgeColor = "#E4C85A"; badgeText = "Средний сон"; }
-        else if (qCls === "q6" || qCls === "q7" || qCls === "q8") { badgeColor = "#4BA887"; badgeText = "Хороший сон"; }
-        else { badgeColor = "#256BB0"; badgeText = "Цель выполнена"; }
+        let badgeColor = "#10b981";
+        let badgeText = "Цель выполнена 🟢";
+        if (hours < 6.0) {
+          badgeColor = "#ef4444";
+          badgeText = "Мало сна 🔴";
+        } else if (hours < 7.0) {
+          badgeColor = "#eab308";
+          badgeText = "Ниже нормы 🟡";
+        } else if (hours < 8.0) {
+          badgeColor = "#22c55e";
+          badgeText = "Норма 🟢";
+        } else if (hours < 9.0) {
+          badgeColor = "#10b981";
+          badgeText = "Цель выполнена 🟢";
+        } else {
+          badgeColor = "#f97316";
+          badgeText = "Долгий сон 🟠";
+        }
 
         const goalStatusText = hours >= USER_GOAL ? "Цель выполнена ✓" : `До цели ${(USER_GOAL - hours).toFixed(1)} ч`;
-
         card.innerHTML = `
           <div class="today-header">
             <span class="today-label">ПРОШЛАЯ НОЧЬ · ${formattedDate}</span>
