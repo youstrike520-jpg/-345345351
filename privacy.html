@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#09090b">
+  <title>Политика конфиденциальности · MILKIS_SLEEP</title>
+  <!--
+    ВНИМАНИЕ ПЕРЕД ПУБЛИКАЦИЕЙ
+    Заполните поля, отмеченные тегом <mark>:
+      * наименование оператора (кто обрабатывает данные);
+      * контакт для обращений;
+      * дату вступления в силу.
+    Пункты, которые нужно проверить с юристом, помечены комментарием ПРОВЕРИТЬ.
+  -->
+  <style>
+    :root {
+      --bg: #09090b;
+      --card: #121214;
+      --inner: #18181b;
+      --border: #27272a;
+      --text: #f4f4f5;
+      --muted: #a1a1aa;
+      --dim: #71717a;
+      --c-near: #6ee7b7;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      padding: 24px 16px 48px;
+    }
+    main { max-width: 680px; margin: 0 auto; }
+    h1 { font-size: 24px; font-weight: 800; margin-bottom: 6px; }
+    .updated { color: var(--dim); font-size: 13px; margin-bottom: 24px; }
+    h2 { font-size: 17px; font-weight: 700; margin: 28px 0 10px; }
+    p, li { font-size: 15px; color: var(--text); }
+    ul { padding-left: 20px; margin: 10px 0; }
+    li { margin-bottom: 6px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 16px 18px;
+      margin: 18px 0;
+    }
+    .muted { color: var(--muted); }
+    mark {
+      background: rgba(110, 231, 183, 0.18);
+      color: var(--c-near);
+      padding: 1px 5px;
+      border-radius: 6px;
+    }
+    a { color: var(--c-near); }
+    .levels { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+    .level {
+      font-size: 12px;
+      font-weight: 700;
+      padding: 6px 10px;
+      border-radius: 10px;
+    }
+    footer { color: var(--dim); font-size: 12px; margin-top: 32px; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Политика конфиденциальности MILKIS_SLEEP</h1>
+  <div class="updated">
+    Редакция 1.0 · действует с <mark>укажите дату</mark>
+  </div>
+
+  <div class="card">
+    <p><b>Коротко.</b> Мы собираем только часы сна и, по желанию, отметку
+    самочувствия. Данные видит только владелец бота и вы сами. Их можно выгрузить
+    файлом или удалить одним нажатием.</p>
+  </div>
+
+  <h2>1. Кто обрабатывает данные</h2>
+  <p>Оператор: <mark>наименование оператора</mark>.<br>
+  Контакт для обращений: <mark>контакт</mark>.</p>
+  <!-- ПРОВЕРИТЬ: уведомление в Роскомнадзор об обработке персональных данных
+       и статус оператора. Данные о состоянии здоровья — специальная категория. -->
+
+  <h2>2. Какие данные мы собираем</h2>
+  <ul>
+    <li>телефонный идентификатор Telegram (числовой ID) — чтобы различать пользователей;</li>
+    <li>имя и username из профиля Telegram — чтобы отвечать по имени;</li>
+    <li>часы сна за прошедшую ночь;</li>
+    <li>отметку самочувствия (сонливость, норма, бодрость) — если вы её поставили;</li>
+    <li>настройки: цель сна, время напоминаний, заморозки серии.</li>
+  </ul>
+  <p class="muted">Мы не запрашиваем геолокацию, контакты, документы, доступ к
+  камере и микрофону. Мы не собираем данные о диагнозах и не ставим медицинских
+  выводов.</p>
+
+  <h2>3. Зачем мы их обрабатываем</h2>
+  <ul>
+    <li>показывать карту сна, статистику и серию;</li>
+    <li>присылать утренний вопрос и вечернее напоминание;</li>
+    <li>считать личные наблюдения о связи сна и самочувствия;</li>
+    <li>выдавать файл экспорта по вашему запросу.</li>
+  </ul>
+  <p>Правовое основание — ваше согласие, данное при первом запуске бота.
+  Согласие можно отозвать: удалите данные кнопкой «Очистить мои данные».</p>
+
+  <h2>4. Как хранятся данные</h2>
+  <p>Данные хранятся на сервере бота в приватном виде и не передаются третьим
+  лицам, за исключением самой платформы Telegram, через которую идёт переписка.
+  Срок хранения — пока вы пользуетесь ботом; после удаления данные стираются.</p>
+
+  <h2>5. Ваши права</h2>
+  <ul>
+    <li><b>Экспорт.</b> Кнопка «Экспорт файла» в разделе «⚙️ Ещё» отдаёт все ваши
+    записи файлом Excel или CSV.</li>
+    <li><b>Удаление.</b> Кнопка «Очистить мои данные» удаляет записи о сне,
+    самочувствии, настройки и снимает согласие. Действие необратимо.</li>
+    <li><b>Отказ.</b> Без согласия бот не записывает данные о сне.</li>
+  </ul>
+
+  <h2>6. Цветовая шкала</h2>
+  <p>Оценка сна не является медицинской. Цвет ячейки показывает только
+  продолжительность сна:</p>
+  <div class="levels">
+    <span class="level" style="background:#ef4444; color:#ffffff;">🔴 меньше 6 ч</span>
+    <span class="level" style="background:#eab308; color:#18181b;">🟡 6.0–6.9 ч</span>
+    <span class="level" style="background:#22c55e; color:#ffffff;">🟢 7.0–7.9 ч</span>
+    <span class="level" style="background:#10b981; color:#ffffff;">🟢 8.0–8.9 ч</span>
+    <span class="level" style="background:#f97316; color:#ffffff;">🟠 9 ч и больше</span>
+  </div>
+  <p class="muted">В подсказках бота те же ночи отмечаются нейтральными
+  кружками: ⚪ меньше 6 ч, 🟢 6.0–7.9 ч, ✅ 8 ч и больше. Это те же данные,
+  другая подача.</p>
+
+  <h2>7. Изменения политики</h2>
+  <p>При изменении политики бот попросит подтвердить согласие заново.
+  Продолжая пользоваться ботом, вы соглашаетесь с новой редакцией.</p>
+
+  <footer>
+    Данные о сне — это данные о здоровье, поэтому мы стараемся собирать минимум
+    и не передавать их никому.
+  </footer>
+</main>
+</body>
+</html>

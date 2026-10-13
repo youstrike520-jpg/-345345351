@@ -562,12 +562,62 @@
       transition: width 0.3s;
     }
 
+    /* Блок «Сплюш и опыт»: за что дают XP и сколько до уровня.
+       Цвета — те же, что и в остальном приложении, новых нет. */
+    .xp-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .xp-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .xp-card-title {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+    .xp-card-level { font-size: 11px; color: var(--text-muted); font-weight: 600; }
+    .xp-next { font-size: 12px; color: var(--text-muted); margin: 10px 0 12px; }
+    .xp-rules {
+      list-style: none;
+      display: grid;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    .xp-rules li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: var(--text-muted);
+      background: var(--card-inner);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 7px 10px;
+    }
+    .xp-rules li span { color: #34d399; font-weight: 800; }
+    .xp-mascot {
+      font-size: 12px;
+      color: var(--text-muted);
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.22);
+      border-radius: 12px;
+      padding: 9px 12px;
+    }
+
     .self-comp-box {
       background: rgba(16, 185, 129, 0.08);
       border: 1px solid rgba(16, 185, 129, 0.22);
       border-radius: 14px;
-      padding: 10px 14px;
-      font-size: 12px;
+      padding: 10px 14px;      font-size: 12px;
       font-weight: 500;
       color: #86efac;
       margin-bottom: 16px;
@@ -921,6 +971,23 @@
       </div>
     </div>
 
+    <!-- Блок «Сплюш и опыт»: за что дают XP и что нужно для следующего уровня -->
+    <div class="xp-card" id="xpCard">
+      <div class="xp-card-header">
+        <span class="xp-card-title">⚡ Сплюш и опыт</span>
+        <span class="xp-card-level" id="xpCardLevel">Ур. 1 · 0/100 XP</span>
+      </div>
+      <div class="stage-bar-bg"><div class="stage-bar-fill" id="xpCardBar" style="width:0%;"></div></div>
+      <div class="xp-next" id="xpCardNext">До следующего уровня 100 XP</div>
+      <ul class="xp-rules">
+        <li><span>+10 XP</span> запись ночи</li>
+        <li><span>+5 XP</span> ответ о самочувствии</li>
+        <li><span>+15 XP</span> каждые 7 ночей серии</li>
+        <li><span>+25 XP</span> неделя без пропусков</li>
+      </ul>
+      <div class="xp-mascot" id="xpCardMascot">😴 Сплюш сладко спит и ждёт ночных новостей.</div>
+    </div>
+
     <!-- Быстрая запись сна (One-Tap HabitKit Log) -->
     <div class="quick-entry-card" id="quickLogCard">
       <div class="quick-header">
@@ -1104,8 +1171,30 @@
       if (rawFrozen) {
         try {
           const arr = JSON.parse(decodeURIComponent(rawFrozen));
-          if (Array.isArray(arr)) frozenDates = new Set(arr);
+          if (Array.isArray(arr)) {
+            // Бот присылает заморозки как объекты {"date": "...", "source": "..."},
+            // старые ссылки — просто строками дат. Понимаем оба вида.
+            frozenDates = new Set(arr
+              .map(item => (typeof item === "string" ? item : (item && item.date) || ""))
+              .filter(Boolean));
+          }
         } catch (e) {}
+      }
+
+      // Готовые числа серии от бота: показываем то же, что и в чате.
+      const streakParam = urlParams.get("streak");
+      const bestParam = urlParams.get("best");
+      if (streakParam !== null && streakParam !== "" && !isNaN(Number(streakParam))) {
+        URL_STREAK = Number(streakParam);
+      }
+      if (bestParam !== null && bestParam !== "" && !isNaN(Number(bestParam))) {
+        URL_BEST = Number(bestParam);
+      }
+
+      // Опыт и уровень тоже считает бот.
+      const xpParam = urlParams.get("xp");
+      if (xpParam !== null && xpParam !== "" && !isNaN(Number(xpParam))) {
+        URL_XP = Number(xpParam);
       }
     }
 
@@ -1232,8 +1321,26 @@
       autoSyncToBot(sleepData);
     }
 
-    // Расчет стрика: синхронизирован с Telegram-ботом
+    // Расчет стрика. Числа от бота главнее: серию считает core.py,
+    // и Mini App должен показывать ровно то же, что и чат.
+    // Локальный расчет — тот же алгоритм, если параметров в ссылке нет.
+    const PAUSE_CLOSE_DAYS = 30;
+    const FREEZE_EVERY_DAYS = 7;
+    const FREEZE_MIN_NIGHTS = 2;
+    const DAY_MS = 86400000;
+
+    let URL_STREAK = null;
+    let URL_BEST = null;
+
+    function daysBetween(a, b) {
+      return Math.round((b - a) / DAY_MS);
+    }
+
     function calculateSoftStreakData() {
+      if (URL_STREAK !== null) {
+        return { streak: URL_STREAK, best: URL_BEST !== null ? URL_BEST : URL_STREAK };
+      }
+
       const dates = Object.keys(sleepData).filter(d => {
         const val = sleepData[d];
         const h = typeof val === "object" ? val.duration : Number(val);
@@ -1242,58 +1349,72 @@
 
       if (dates.length === 0) return { streak: 0, best: 0 };
 
-      let lastFreezeIdx = -999;
-      let tempStreak = 0;
-      let bestStreak = 0;
+      // Покрытые дни: записи плюс уже известные заморозки.
+      const covered = new Set(dates);
+      frozenDates.forEach(day => covered.add(day));
+      const ordered = Array.from(covered).sort();
 
-      const start = parseLocalDate(dates[0]);
-      const end = parseLocalDate(dates[dates.length - 1]);
-      let cur = new Date(start);
-      let dayIdx = 0;
-
-      while (cur <= end) {
-        const ds = formatLocalDate(cur);
-        if (sleepData[ds]) {
-          tempStreak++;
-          if (tempStreak > bestStreak) bestStreak = tempStreak;
-        } else {
-          if ((dayIdx - lastFreezeIdx) >= 7 && tempStreak >= 2) {
-            frozenDates.add(ds);
-            lastFreezeIdx = dayIdx;
-            tempStreak++;
-            if (tempStreak > bestStreak) bestStreak = tempStreak;
-          } else {
-            tempStreak = 0;
-          }
+      // Серия закрывается только длинной паузой, пропуск её не обнуляет.
+      const segments = [];
+      let current = [];
+      let prev = null;
+      for (const key of ordered) {
+        const day = parseLocalDate(key);
+        if (prev && daysBetween(prev, day) >= PAUSE_CLOSE_DAYS) {
+          segments.push(current);
+          current = [];
         }
-        cur.setDate(cur.getDate() + 1);
-        dayIdx++;
+        current.push(key);
+        prev = day;
       }
+      if (current.length) segments.push(current);
 
       const today = new Date();
-      const todayStr = formatLocalDate(today);
       const yesterday = new Date(today);
       yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = formatLocalDate(yesterday);
 
-      // Проверяем непрерывность с сегодняшнего или вчерашнего дня
-      let check = new Date(today);
-      if (!sleepData[todayStr] && !frozenDates.has(todayStr)) {
-        check = new Date(yesterday);
-      }
+      let best = 0;
+      let activeNights = 0;
 
-      let activeStreak = 0;
-      while (true) {
-        const ds = formatLocalDate(check);
-        if (sleepData[ds] || frozenDates.has(ds)) {
-          activeStreak++;
-          check.setDate(check.getDate() - 1);
-        } else {
-          break;
+      segments.forEach((segment, index) => {
+        const first = parseLocalDate(segment[0]);
+        const last = parseLocalDate(segment[segment.length - 1]);
+        let limit = last;
+        if (index === segments.length - 1) {
+          // Заморозка даётся только за первый пропущенный день.
+          const plusOne = new Date(last);
+          plusOne.setDate(plusOne.getDate() + 1);
+          const cap = Math.min(yesterday.getTime(), plusOne.getTime());
+          limit = new Date(Math.max(last.getTime(), cap));
         }
-      }
 
-      return { streak: activeStreak, best: Math.max(bestStreak, activeStreak) };
+        let run = 0;
+        let nights = 0;
+        let lastFreeze = null;
+        const cursor = new Date(first);
+        while (cursor <= limit) {
+          const ds = formatLocalDate(cursor);
+          if (covered.has(ds)) {
+            run++;
+            nights++;
+            if (frozenDates.has(ds)) lastFreeze = new Date(cursor);
+          } else if ((lastFreeze === null || daysBetween(lastFreeze, cursor) >= FREEZE_EVERY_DAYS)
+                     && run >= FREEZE_MIN_NIGHTS) {
+            frozenDates.add(ds);
+            lastFreeze = new Date(cursor);
+            run++;
+            nights++;
+          }
+          cursor.setDate(cursor.getDate() + 1);
+        }
+        if (nights > best) best = nights;
+        if (index === segments.length - 1) activeNights = nights;
+      });
+
+      const lastRecorded = parseLocalDate(dates[dates.length - 1]);
+      const closed = daysBetween(lastRecorded, today) >= PAUSE_CLOSE_DAYS;
+      const streak = closed ? 0 : activeNights;
+      return { streak: streak, best: Math.max(best, streak) };
     }
 
     // 1. Рендер верхней карточки «Сегодня»
@@ -1686,6 +1807,38 @@
         avatar.innerText = "😴";
         phrase.innerText = "Сплюш сладко спит и ждёт ночных новостей.";
       }
+
+      // Тот же облик и фраза — в блоке «Сплюш и опыт».
+      const cardMascot = document.getElementById("xpCardMascot");
+      if (cardMascot) cardMascot.innerText = `${avatar.innerText} ${phrase.innerText}`;
+    }
+
+    // Уровень и опыт. Числа приходят от бота в ссылке, чтобы Mini App
+    // показывал ровно то же, что и чат.
+    let URL_XP = null;
+    const XP_PER_LEVEL = 100;
+
+    function updateXpCard() {
+      const levelBadge = document.getElementById("userLevelBadge");
+      const cardLevel = document.getElementById("xpCardLevel");
+      const cardNext = document.getElementById("xpCardNext");
+      const cardBar = document.getElementById("xpCardBar");
+      const headerBar = document.getElementById("xpProgressBar");
+
+      if (URL_XP === null) {
+        if (cardNext) cardNext.innerText = "Опыт подтянется, когда откроете карту из бота.";
+        return;
+      }
+
+      const level = 1 + Math.floor(URL_XP / XP_PER_LEVEL);
+      const inLevel = URL_XP % XP_PER_LEVEL;
+      const width = `${(inLevel / XP_PER_LEVEL) * 100}%`;
+
+      if (levelBadge) levelBadge.innerText = `Ур. ${level}`;
+      if (cardLevel) cardLevel.innerText = `Ур. ${level} · ${inLevel}/${XP_PER_LEVEL} XP`;
+      if (cardNext) cardNext.innerText = `До следующего уровня ${XP_PER_LEVEL - inLevel} XP`;
+      if (cardBar) cardBar.style.width = width;
+      if (headerBar) headerBar.style.width = width;
     }
 
     // Статистика года (для вкладки «Год»)
@@ -1728,6 +1881,7 @@
       }
       updateSelfCompAndStages();
       updateMascotAndStreak();
+      updateXpCard();
       updateYearStats();
     }
 
