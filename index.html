@@ -773,15 +773,10 @@
           <div class="mascot-sub" id="mascotPhrase">Ждёт ночных новостей</div>
         </div>
       </div>
-      <!-- Кнопка быстрой синхронизации + Серия -->
-      <div style="display: flex; align-items: center; gap: 6px;">
-        <button id="syncBtn" onclick="syncDataWithBot()" title="Передать данные в Telegram-бот" style="background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.35); color: #86efac; border-radius: 999px; padding: 4px 10px; font-size: 11px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;">
-          <span>🔄</span> <span>В бот</span>
-        </button>
-        <div class="streak-pill" id="streakBadge">
-          <span class="streak-icon" id="streakIcon">🌱</span>
-          <span class="streak-text" id="streakText">Начните серию</span>
-        </div>
+      <!-- Серия: при 0 «Начните серию», огонёк только от 3 дней -->
+      <div class="streak-pill" id="streakBadge">
+        <span class="streak-icon" id="streakIcon">🌱</span>
+        <span class="streak-text" id="streakText">Начните серию</span>
       </div>
     </header>
     <div class="xp-track-mini">
@@ -965,8 +960,7 @@
         <input type="number" id="modalHoursInput" step="0.1" min="1" max="24" placeholder="8.0">
       </div>
       <div class="modal-actions">
-        <button class="btn-m-save" onclick="saveModalLog(false)">Сохранить</button>
-        <button class="btn-m-save" style="background:#10b981; color:#fff;" onclick="saveModalLog(true)">💾 В бот</button>
+        <button class="btn-m-save" onclick="saveModalLog()">Сохранить</button>
         <button class="btn-m-cancel" onclick="closeModal()">Отмена</button>
       </div>
     </div>
@@ -1115,30 +1109,44 @@
       }
     }
 
-    // Двусторонняя синхронизация с Telegram-ботом
-    function syncDataWithBot() {
-      triggerHaptic();
-      if (tg) {
-        try {
-          const payload = JSON.stringify(sleepData);
-          tg.sendData(payload);
-          return;
-        } catch (e) {
-          console.warn("tg.sendData:", e);
-        }
+    // Автоматическая фоновая синхронизация с Telegram-ботом
+    function autoSyncToBot(dataToSend) {
+      const payload = JSON.stringify(dataToSend || sleepData);
+      const urlParams = new URLSearchParams(window.location.search);
+      let uid = "";
+      if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+        uid = String(tg.initDataUnsafe.user.id);
+      } else {
+        uid = urlParams.get("uid") || ADMIN_ID;
       }
-      showToast("✓ Данные сохранены в приложении");
-    }
 
-    function updateTelegramMainButton() {
-      if (tg && tg.MainButton) {
+      // 1. Попытка прямой отправки через фоновый HTTP API бота (порт 8080)
+      try {
+        fetch("http://127.0.0.1:8080/api/save_sleep", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user_id: uid,
+            data: dataToSend || sleepData
+          })
+        }).catch(() => {});
+      } catch (e) {}
+
+      // 2. Фоновое сохранение в Telegram CloudStorage
+      if (tg && tg.CloudStorage) {
         try {
-          tg.MainButton.setText("💾 Сохранить изменения в бот").show();
-          tg.MainButton.onClick(() => {
-            syncDataWithBot();
-          });
+          tg.CloudStorage.setItem("sleep_tracker_2026", payload, () => {});
         } catch (e) {}
       }
+
+      // 3. Отправка через нативный tg.sendData (если открыто из клавиатуры бота)
+      if (tg && typeof tg.sendData === "function") {
+        try {
+          tg.sendData(payload);
+          return true;
+        } catch (e) {}
+      }
+      return false;
     }
 
     function showToast(msg) {
@@ -1179,7 +1187,7 @@
       triggerHaptic();
       renderAll();
       showToast(`Записал: ${hoursVal} ч ✓\n+10 XP · серия сохранена`);
-      updateTelegramMainButton();
+      autoSyncToBot(sleepData);
     }
 
     function openModal(dateStr, currentHrs) {
@@ -1200,7 +1208,7 @@
       activeModalDate = null;
     }
 
-    function saveModalLog(sendToBot = false) {
+    function saveModalLog() {
       if (!activeModalDate) return;
       const hoursVal = parseFloat(document.getElementById("modalHoursInput").value);
 
@@ -1220,11 +1228,8 @@
       renderAll();
       showToast(`Записал: ${hoursVal} ч ✓\n+10 XP · серия сохранена`);
 
-      if (sendToBot) {
-        syncDataWithBot();
-      } else {
-        updateTelegramMainButton();
-      }
+      // Автоматический перенос в Telegram
+      autoSyncToBot(sleepData);
     }
 
     // Расчет стрика: синхронизирован с Telegram-ботом
@@ -1725,6 +1730,16 @@
       updateMascotAndStreak();
       updateYearStats();
     }
+
+    // Автоматическая отправка при закрытии или переключении вкладки
+    window.addEventListener("beforeunload", () => {
+      autoSyncToBot(sleepData);
+    });
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") {
+        autoSyncToBot(sleepData);
+      }
+    });
 
     // Инициализация при старте
     document.addEventListener("DOMContentLoaded", () => {
